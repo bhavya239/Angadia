@@ -1,19 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 
+interface City {
+  id: string;
+  name: string;
+  state: string;
+}
+
 interface Party {
   id?: string;
   name: string;
   partyCode: string;
-  cityName: string;
+  cityId: string;
   phone: string;
   email: string;
+  partyType: 'CR' | 'DR' | 'BOTH';
+  crRoi: number;
+  drRoi: number;
   openingBalance: number;
   openingBalanceType: 'DR' | 'CR';
 }
@@ -27,17 +36,41 @@ interface PartyFormModalProps {
 const defaultForm: Party = {
   name: '',
   partyCode: '',
-  cityName: '',
+  cityId: '',
   phone: '',
   email: '',
+  partyType: 'BOTH',
+  crRoi: 0.0,
+  drRoi: 0.0,
   openingBalance: 0,
   openingBalanceType: 'DR',
 };
 
 export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProps) {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState<Party>(existing || defaultForm);
+  const [form, setForm] = useState<Party>(defaultForm);
   const isEdit = !!existing?.id;
+
+  // Sync form when existing data changes
+  useEffect(() => {
+    if (existing) {
+      setForm({
+        ...defaultForm,
+        ...existing,
+      });
+    } else {
+      setForm(defaultForm);
+    }
+  }, [existing, isOpen]);
+
+  const { data: cities } = useQuery({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const res = await api.get('/cities');
+      return res.data.data as City[];
+    },
+    enabled: isOpen
+  });
 
   const set = (field: keyof Party, value: any) =>
     setForm(prev => ({ ...prev, [field]: value }));
@@ -54,13 +87,15 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
       onClose();
     },
     onError: (err: any) =>
-      toast.error(err.response?.data?.message || 'Failed to save party'),
+      toast.error(err.response?.data?.message || 'Failed to save party. Check required fields.'),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return toast.error('Party name is required');
     if (!form.phone.trim()) return toast.error('Phone number is required');
+    if (!form.cityId) return toast.error('City selection is required');
+    if (!form.partyType) return toast.error('Party Type is required');
     mutation.mutate(form);
   };
 
@@ -76,7 +111,7 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
         {/* Row 1 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
-            label="Party Name"
+            label="Party Name *"
             placeholder="e.g. Ramesh Bhai Patel"
             value={form.name}
             onChange={e => set('name', e.target.value)}
@@ -85,7 +120,7 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
           <Input
             label="Party Code"
             placeholder="e.g. RBP001"
-            value={form.partyCode}
+            value={form.partyCode || ''}
             onChange={e => set('partyCode', e.target.value.toUpperCase())}
             hint="Short unique identifier"
           />
@@ -93,39 +128,86 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
 
         {/* Row 2 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-slate-700">City / Location *</label>
+            <select
+              required
+              className="form-select"
+              value={form.cityId}
+              onChange={e => set('cityId', e.target.value)}
+            >
+              <option value="">— Select a city —</option>
+              {cities?.map(city => (
+                <option key={city.id} value={city.id}>{city.name} ({city.state})</option>
+              ))}
+            </select>
+          </div>
           <Input
-            label="City / Location"
-            placeholder="e.g. Ahmedabad"
-            value={form.cityName}
-            onChange={e => set('cityName', e.target.value)}
-          />
-          <Input
-            label="Mobile / Phone"
+            label="Mobile / Phone *"
             type="tel"
             placeholder="e.g. 9876543210"
             value={form.phone}
             onChange={e => set('phone', e.target.value)}
             required
-            hint="Used for WhatsApp reminders"
+            hint="Used for WhatsApp reminders (format: 9XXXXXXXXX)"
           />
         </div>
 
-        {/* Email */}
-        <Input
-          label="Email Address"
-          type="email"
-          placeholder="e.g. ramesh@example.com"
-          value={form.email}
-          onChange={e => set('email', e.target.value)}
-          hint="Optional — for email notifications"
-        />
+        {/* Email & Party Type */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="e.g. ramesh@example.com"
+            value={form.email || ''}
+            onChange={e => set('email', e.target.value)}
+            hint="Optional"
+          />
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-slate-700">Party Type *</label>
+            <select
+              required
+              className="form-select"
+              value={form.partyType}
+              onChange={e => set('partyType', e.target.value)}
+            >
+              <option value="BOTH">BOTH (Sender & Receiver)</option>
+              <option value="CR">CREDIT (Receiver Only)</option>
+              <option value="DR">DEBIT (Sender Only)</option>
+            </select>
+          </div>
+        </div>
 
-        {/* Opening Balance */}
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-          <p className="text-sm font-semibold text-slate-700 mb-3">Opening Balance</p>
+        {/* ROI and Balances */}
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+          <p className="text-sm font-semibold text-slate-700">Financial Settings</p>
+          
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Amount (₹)"
+              label="Debit ROI (%)"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="e.g. 1.50"
+              value={form.drRoi}
+              onChange={e => set('drRoi', parseFloat(e.target.value) || 0)}
+              hint="Interest rate charged on sent funds"
+            />
+            <Input
+              label="Credit ROI (%)"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="e.g. 1.50"
+              value={form.crRoi}
+              onChange={e => set('crRoi', parseFloat(e.target.value) || 0)}
+              hint="Interest rate paid on received funds"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <Input
+              label="Opening Balance (₹)"
               type="number"
               step="0.01"
               min="0"
@@ -139,7 +221,7 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
                 <button
                   type="button"
                   onClick={() => set('openingBalanceType', 'DR')}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
+                  className={`flex-1 py-1.5 rounded-xl text-sm font-bold border-2 transition-all ${
                     form.openingBalanceType === 'DR'
                       ? 'border-red-400 bg-red-50 text-red-600'
                       : 'border-slate-200 text-slate-500 hover:border-slate-300'
@@ -150,7 +232,7 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
                 <button
                   type="button"
                   onClick={() => set('openingBalanceType', 'CR')}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
+                  className={`flex-1 py-1.5 rounded-xl text-sm font-bold border-2 transition-all ${
                     form.openingBalanceType === 'CR'
                       ? 'border-emerald-400 bg-emerald-50 text-emerald-600'
                       : 'border-slate-200 text-slate-500 hover:border-slate-300'
