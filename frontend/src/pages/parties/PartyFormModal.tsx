@@ -17,7 +17,7 @@ interface Party {
   id?: string;
   name: string;
   partyCode: string;
-  cityId: string;
+  cityName: string;
   phone: string;
   email: string;
   partyType: 'CR' | 'DR' | 'BOTH';
@@ -36,7 +36,7 @@ interface PartyFormModalProps {
 const defaultForm: Party = {
   name: '',
   partyCode: '',
-  cityId: '',
+  cityName: '',
   phone: '',
   email: '',
   partyType: 'BOTH',
@@ -63,15 +63,6 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
     }
   }, [existing, isOpen]);
 
-  const { data: cities } = useQuery({
-    queryKey: ['cities'],
-    queryFn: async () => {
-      const res = await api.get('/cities');
-      return res.data.data as City[];
-    },
-    enabled: isOpen
-  });
-
   const set = (field: keyof Party, value: any) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
@@ -94,7 +85,7 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
     e.preventDefault();
     if (!form.name.trim()) return toast.error('Party name is required');
     if (!form.phone.trim()) return toast.error('Phone number is required');
-    if (!form.cityId) return toast.error('City selection is required');
+    if (!form.cityName) return toast.error('City/Location is required');
     if (!form.partyType) return toast.error('Party Type is required');
     mutation.mutate(form);
   };
@@ -128,20 +119,13 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
 
         {/* Row 2 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-slate-700">City / Location *</label>
-            <select
-              required
-              className="form-select"
-              value={form.cityId}
-              onChange={e => set('cityId', e.target.value)}
-            >
-              <option value="">— Select a city —</option>
-              {cities?.map(city => (
-                <option key={city.id} value={city.id}>{city.name} ({city.state})</option>
-              ))}
-            </select>
-          </div>
+          <Input
+            label="City / Location *"
+            placeholder="e.g. Ahmedabad"
+            value={form.cityName}
+            onChange={e => set('cityName', e.target.value)}
+            required
+          />
           <Input
             label="Mobile / Phone *"
             type="tel"

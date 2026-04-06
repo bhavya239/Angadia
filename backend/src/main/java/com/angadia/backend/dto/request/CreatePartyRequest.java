@@ -11,8 +11,8 @@ public record CreatePartyRequest(
     @Size(min = 2, max = 100)
     String name,
 
-    @NotBlank(message = "City ID is required")
-    String cityId,
+    @NotBlank(message = "City name is required")
+    String cityName,
 
     @Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid Indian mobile number")
     String phone,

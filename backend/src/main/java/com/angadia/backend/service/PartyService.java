@@ -33,8 +33,16 @@ public class PartyService {
 
     public PartyResponse createParty(CreatePartyRequest req, String userId, String username,
                                      String ipAddress, String userAgent) {
-        var city = cityRepository.findById(req.cityId())
-            .orElseThrow(() -> new EntityNotFoundException("City not found: " + req.cityId()));
+        com.angadia.backend.domain.entity.City city = cityRepository.findByNameIgnoreCase(req.cityName().trim())
+            .orElseGet(() -> {
+                com.angadia.backend.domain.entity.City newCity = com.angadia.backend.domain.entity.City.builder()
+                    .name(req.cityName().trim())
+                    .state("Unknown")
+                    .isActive(true)
+                    .createdAt(java.time.Instant.now())
+                    .build();
+                return cityRepository.save(newCity);
+            });
 
         if (!city.isActive()) throw new BusinessRuleException("Selected city is inactive");
 
@@ -89,8 +97,16 @@ public class PartyService {
         Party existing = findById(id);
         String oldJson  = toJson(existing);
 
-        var city = cityRepository.findById(req.cityId())
-            .orElseThrow(() -> new EntityNotFoundException("City not found: " + req.cityId()));
+        com.angadia.backend.domain.entity.City city = cityRepository.findByNameIgnoreCase(req.cityName().trim())
+            .orElseGet(() -> {
+                com.angadia.backend.domain.entity.City newCity = com.angadia.backend.domain.entity.City.builder()
+                    .name(req.cityName().trim())
+                    .state("Unknown")
+                    .isActive(true)
+                    .createdAt(java.time.Instant.now())
+                    .build();
+                return cityRepository.save(newCity);
+            });
 
         existing.setName(req.name().trim());
         existing.setCityId(city.getId());
