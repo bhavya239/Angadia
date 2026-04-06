@@ -10,10 +10,10 @@ import api from '../../lib/axios';
 interface Party {
   id?: string;
   name: string;
-  partyCode: string;
+  partyCode?: string;
   cityName: string;
   phone: string;
-  email: string;
+  email?: string;
   partyType: 'CR' | 'DR' | 'BOTH';
   crRoi: number;
   drRoi: number;
@@ -27,9 +27,8 @@ interface PartyFormModalProps {
   existing?: Party | null;
 }
 
-const defaultForm: Party = {
+const defaultForm: Omit<Party, 'id' | 'partyCode'> = {
   name: '',
-  partyCode: '',
   cityName: '',
   phone: '',
   email: '',
@@ -42,31 +41,42 @@ const defaultForm: Party = {
 
 export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProps) {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState<Party>(defaultForm);
+  const [form, setForm] = useState(defaultForm);
   const isEdit = !!existing?.id;
 
   // Sync form when existing data changes
   useEffect(() => {
     if (existing) {
       setForm({
-        ...defaultForm,
-        ...existing,
+        name: existing.name || '',
+        cityName: existing.cityName || '',
+        phone: existing.phone || '',
+        email: existing.email || '',
+        partyType: existing.partyType || 'BOTH',
+        crRoi: existing.crRoi ?? 0,
+        drRoi: existing.drRoi ?? 0,
+        openingBalance: existing.openingBalance ?? 0,
+        openingBalanceType: existing.openingBalanceType || 'DR',
       });
     } else {
       setForm(defaultForm);
     }
   }, [existing, isOpen]);
 
-  const set = (field: keyof Party, value: any) =>
+  const set = (field: keyof typeof form, value: any) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
   const mutation = useMutation({
-    mutationFn: (data: Party) =>
+    mutationFn: (data: typeof form) =>
       isEdit
         ? api.put(`/parties/${existing?.id}`, data)
         : api.post('/parties', data),
     onSuccess: () => {
+      // Invalidate both parties list AND dashboard stats
       queryClient.invalidateQueries({ queryKey: ['parties'] });
+      queryClient.invalidateQueries({ queryKey: ['parties_list'] });
+      queryClient.invalidateQueries({ queryKey: ['parties_select'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_stats'] });
       toast.success(isEdit ? 'Party updated!' : 'Party added successfully!');
       setForm(defaultForm);
       onClose();
@@ -85,8 +95,12 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
     e.preventDefault();
     if (!form.name.trim()) return toast.error('Party name is required');
     if (!form.phone.trim()) return toast.error('Phone number is required');
-    if (!form.cityName) return toast.error('City/Location is required');
+    if (!form.cityName.trim()) return toast.error('City/Location is required');
     if (!form.partyType) return toast.error('Party Type is required');
+    // Phone pattern: Indian mobile numbers start with 6-9
+    if (!/^[6-9]\d{9}$/.test(form.phone.trim())) {
+      return toast.error('Enter a valid 10-digit Indian mobile number (must start with 6–9)');
+    }
     mutation.mutate(form);
   };
 
@@ -99,6 +113,17 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Edit mode: show auto-generated party code */}
+        {isEdit && existing?.partyCode && (
+          <div className="flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+            <span className="text-xs text-slate-500 font-medium">Party Code:</span>
+            <span className="font-mono text-sm font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-lg border border-indigo-200">
+              {existing.partyCode}
+            </span>
+            <span className="text-xs text-slate-400 ml-auto italic">Auto-generated</span>
+          </div>
+        )}
+
         {/* Row 1 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
@@ -108,13 +133,19 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
             onChange={e => set('name', e.target.value)}
             required
           />
-          <Input
-            label="Party Code"
-            placeholder="e.g. RBP001"
-            value={form.partyCode || ''}
-            onChange={e => set('partyCode', e.target.value.toUpperCase())}
-            hint="Short unique identifier"
-          />
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-slate-700">Party Type *</label>
+            <select
+              required
+              className="form-select"
+              value={form.partyType}
+              onChange={e => set('partyType', e.target.value)}
+            >
+              <option value="BOTH">BOTH (Sender &amp; Receiver)</option>
+              <option value="CR">CREDIT (Receiver Only)</option>
+              <option value="DR">DEBIT (Sender Only)</option>
+            </select>
+          </div>
         </div>
 
         {/* Row 2 */}
@@ -131,36 +162,21 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
             type="tel"
             placeholder="e.g. 9876543210"
             value={form.phone}
-            onChange={e => set('phone', e.target.value)}
+            onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
             required
-            hint="Used for WhatsApp reminders (format: 9XXXXXXXXX)"
+            hint="10-digit Indian number starting with 6–9"
           />
         </div>
 
-        {/* Email & Party Type */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label="Email Address"
-            type="email"
-            placeholder="e.g. ramesh@example.com"
-            value={form.email || ''}
-            onChange={e => set('email', e.target.value)}
-            hint="Optional"
-          />
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-slate-700">Party Type *</label>
-            <select
-              required
-              className="form-select"
-              value={form.partyType}
-              onChange={e => set('partyType', e.target.value)}
-            >
-              <option value="BOTH">BOTH (Sender & Receiver)</option>
-              <option value="CR">CREDIT (Receiver Only)</option>
-              <option value="DR">DEBIT (Sender Only)</option>
-            </select>
-          </div>
-        </div>
+        {/* Email */}
+        <Input
+          label="Email Address"
+          type="email"
+          placeholder="e.g. ramesh@example.com (optional)"
+          value={form.email || ''}
+          onChange={e => set('email', e.target.value)}
+          hint="Optional — for digital statements"
+        />
 
         {/* ROI and Balances */}
         <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
@@ -175,7 +191,7 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
               placeholder="e.g. 1.50"
               value={form.drRoi}
               onChange={e => set('drRoi', parseFloat(e.target.value) || 0)}
-              hint="Interest rate charged on sent funds"
+              hint="Interest rate on sent funds"
             />
             <Input
               label="Credit ROI (%)"
@@ -185,7 +201,7 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
               placeholder="e.g. 1.50"
               value={form.crRoi}
               onChange={e => set('crRoi', parseFloat(e.target.value) || 0)}
-              hint="Interest rate paid on received funds"
+              hint="Interest rate on received funds"
             />
           </div>
 

@@ -10,6 +10,7 @@ import { Table } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
+import { formatCurrency } from '../../lib/formatCurrency';
 import { ArrowLeftRight, Zap, CalendarDays, TrendingUp, IndianRupee } from 'lucide-react';
 
 const txnSchema = z.object({
@@ -81,7 +82,9 @@ export function TransactionEntry() {
     mutationFn: (data: TxnForm) => api.post('/transactions', data),
     onSuccess: () => {
       toast.success('Transaction saved!');
+      // Refresh daybook AND dashboard so stats update immediately
       queryClient.invalidateQueries({ queryKey: ['daybook'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_stats'] });
       reset({ txnDate: watch('txnDate'), vatavRate: watch('vatavRate') });
       setFocus('senderId');
     },
@@ -112,8 +115,8 @@ export function TransactionEntry() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Today's Entries", value: activeTxns.length, icon: CalendarDays, color: 'text-indigo-600 bg-indigo-50' },
-          { label: 'Volume Moved', value: `₹${todayVolume.toLocaleString('en-IN')}`, icon: IndianRupee, color: 'text-emerald-600 bg-emerald-50' },
-          { label: 'Vatav Earned', value: `₹${todayVatav.toLocaleString('en-IN')}`, icon: TrendingUp, color: 'text-amber-600 bg-amber-50' },
+          { label: 'Volume Moved', value: formatCurrency(todayVolume), icon: IndianRupee, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Vatav Earned', value: formatCurrency(todayVatav), icon: TrendingUp, color: 'text-amber-600 bg-amber-50' },
         ].map(s => {
           const Icon = s.icon;
           return (
@@ -266,13 +269,13 @@ export function TransactionEntry() {
                 {
                   header: 'Amount ₹',
                   accessor: (t: any) => (
-                    <span className="font-bold text-slate-900">₹{t.amount?.toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-slate-900">{formatCurrency(t.amount)}</span>
                   )
                 },
                 {
                   header: 'Vatav ₹',
                   accessor: (t: any) => (
-                    <Badge variant="warning">₹{t.vatavAmount?.toLocaleString('en-IN')}</Badge>
+                    <Badge variant="warning">{formatCurrency(t.vatavAmount)}</Badge>
                   )
                 },
                 {

@@ -14,8 +14,11 @@ public record CreatePartyRequest(
     @NotBlank(message = "City name is required")
     String cityName,
 
-    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid Indian mobile number")
+    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid Indian mobile number (must be 10 digits starting with 6–9)")
     String phone,
+
+    @Email(message = "Invalid email address")
+    String email,
 
     String address,
 

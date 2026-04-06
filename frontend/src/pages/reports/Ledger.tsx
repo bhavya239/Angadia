@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { WhatsAppButton } from '../../components/ui/WhatsAppButton';
 import api from '../../lib/axios';
+import { formatCurrency } from '../../lib/formatCurrency';
 import { BookOpen, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 export function Ledger() {
@@ -43,20 +44,20 @@ export function Ledger() {
     {
       header: 'Debit (Dr)',
       accessor: (e: any) => e.drAmount > 0
-        ? <span className="font-semibold text-red-600">₹{e.drAmount.toLocaleString('en-IN')}</span>
+        ? <span className="font-semibold text-red-600">{formatCurrency(e.drAmount)}</span>
         : <span className="text-slate-300">—</span>
     },
     {
       header: 'Credit (Cr)',
       accessor: (e: any) => e.crAmount > 0
-        ? <span className="font-semibold text-emerald-600">₹{e.crAmount.toLocaleString('en-IN')}</span>
+        ? <span className="font-semibold text-emerald-600">{formatCurrency(e.crAmount)}</span>
         : <span className="text-slate-300">—</span>
     },
     {
       header: 'Running Balance',
       accessor: (e: any) => (
         <span className={`font-bold ${e.balanceType === 'CR' ? 'text-emerald-700' : 'text-red-700'}`}>
-          ₹{e.runningBalance.toLocaleString('en-IN')} {e.balanceType}
+          {formatCurrency(e.runningBalance)} {e.balanceType}
         </span>
       )
     },
@@ -133,13 +134,13 @@ export function Ledger() {
                 <div className="text-right">
                   <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Opening Balance</p>
                   <p className={`text-lg font-bold mt-1 ${ledger.openingBalanceType === 'CR' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    ₹{ledger.openingBalance?.toLocaleString('en-IN')} {ledger.openingBalanceType}
+                    {formatCurrency(ledger.openingBalance)} {ledger.openingBalanceType}
                   </p>
                 </div>
                 <div className={`text-right pl-6 border-l border-slate-200`}>
                   <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Closing Balance</p>
                   <p className={`text-2xl font-extrabold mt-1 ${ledger.closingBalanceType === 'CR' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    ₹{ledger.closingBalance?.toLocaleString('en-IN')} {ledger.closingBalanceType}
+                    {formatCurrency(ledger.closingBalance)} {ledger.closingBalanceType}
                   </p>
                 </div>
               </div>
@@ -159,11 +160,11 @@ export function Ledger() {
           <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-10">
             <div className="flex items-center gap-2 text-red-600 font-bold">
               <ArrowUpRight className="w-5 h-5" />
-              Total Dr: ₹{ledger.totalDr?.toLocaleString('en-IN')}
+              Total Dr: {formatCurrency(ledger.totalDr)}
             </div>
             <div className="flex items-center gap-2 text-emerald-600 font-bold">
               <ArrowDownRight className="w-5 h-5" />
-              Total Cr: ₹{ledger.totalCr?.toLocaleString('en-IN')}
+              Total Cr: {formatCurrency(ledger.totalCr)}
             </div>
           </div>
         </div>

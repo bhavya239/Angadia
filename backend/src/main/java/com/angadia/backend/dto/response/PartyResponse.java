@@ -13,6 +13,7 @@ public record PartyResponse(
     String cityId,
     String cityName,
     String phone,
+    String email,
     String address,
     PartyType partyType,
     BigDecimal crRoi,

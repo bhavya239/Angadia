@@ -61,6 +61,7 @@ public class PartyService {
             .cityId(city.getId())
             .cityName(city.getName())
             .phone(req.phone())
+            .email(req.email())
             .address(req.address())
             .partyType(req.partyType())
             .crRoi(req.crRoi() != null ? req.crRoi() : BigDecimal.ZERO)
@@ -112,6 +113,7 @@ public class PartyService {
         existing.setCityId(city.getId());
         existing.setCityName(city.getName());
         existing.setPhone(req.phone());
+        existing.setEmail(req.email());
         existing.setAddress(req.address());
         existing.setPartyType(req.partyType());
         existing.setCrRoi(req.crRoi() != null ? req.crRoi() : BigDecimal.ZERO);
@@ -154,7 +156,7 @@ public class PartyService {
     private PartyResponse toResponse(Party p) {
         return new PartyResponse(
             p.getId(), p.getPartyCode(), p.getName(),
-            p.getCityId(), p.getCityName(), p.getPhone(), p.getAddress(),
+            p.getCityId(), p.getCityName(), p.getPhone(), p.getEmail(), p.getAddress(),
             p.getPartyType(), p.getCrRoi(), p.getDrRoi(),
             p.getOpeningBalance(), p.getOpeningBalanceType(),
             p.isActive(), p.getCreatedAt(), p.getUpdatedAt()

@@ -9,6 +9,7 @@ import { PartyFormModal } from './PartyFormModal';
 import { Plus, Search, Edit2, Trash2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
+import { formatCurrency } from '../../lib/formatCurrency';
 
 export function PartyList() {
   const queryClient = useQueryClient();
@@ -90,7 +91,7 @@ export function PartyList() {
       header: 'Opening Balance',
       accessor: (p: any) => (
         <Badge variant={p.openingBalanceType === 'CR' ? 'success' : 'danger'} dot>
-          ₹{(p.openingBalance || 0).toLocaleString('en-IN')} {p.openingBalanceType}
+          {formatCurrency(p.openingBalance || 0)} {p.openingBalanceType}
         </Badge>
       )
     },

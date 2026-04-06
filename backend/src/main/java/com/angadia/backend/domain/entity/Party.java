@@ -40,6 +40,7 @@ public class Party {
     private String cityName;   // Denormalized for query performance
 
     private String phone;
+    private String email;   // Optional contact email
     private String address;
 
     private PartyType partyType;

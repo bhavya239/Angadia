@@ -1,10 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Users, Activity, ArrowUpRight, TrendingUp, Plus, ArrowLeftRight, BookOpen, Zap } from 'lucide-react';
 import api from '../lib/axios';
+import { formatCurrency, formatCurrencyShort } from '../lib/formatCurrency';
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard_stats'],
@@ -15,7 +17,10 @@ export function Dashboard() {
       } catch {
         return { activeParties: 0, todayTxnCount: 0, todayVolume: 0, todayVatav: 0 };
       }
-    }
+    },
+    // Refetch every 30 seconds automatically
+    refetchInterval: 30_000,
+    staleTime: 10_000,
   });
 
   const statCards = [
@@ -35,14 +40,14 @@ export function Dashboard() {
     },
     {
       name: 'Volume Today',
-      value: `₹${((stats?.todayVolume ?? 0) / 100000).toFixed(1)}L`,
+      value: formatCurrencyShort(stats?.todayVolume ?? 0),
       icon: ArrowUpRight,
       gradient: 'stat-amber',
       change: 'Total money transferred',
     },
     {
       name: 'Vatav Earned',
-      value: `₹${(stats?.todayVatav ?? 0).toLocaleString('en-IN')}`,
+      value: formatCurrency(stats?.todayVatav ?? 0),
       icon: TrendingUp,
       gradient: 'stat-rose',
       change: "Commission income today",
@@ -58,9 +63,17 @@ export function Dashboard() {
   return (
     <div className="space-y-8 animate-slide-up">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold text-slate-900">Good day! 👋</h1>
-        <p className="text-slate-500 mt-1">Here's your business overview for today.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900">Good day! 👋</h1>
+          <p className="text-slate-500 mt-1">Here's your business overview for today.</p>
+        </div>
+        <button
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['dashboard_stats'] })}
+          className="text-xs text-indigo-500 hover:text-indigo-700 font-semibold underline underline-offset-2"
+        >
+          Refresh
+        </button>
       </div>
 
       {/* Stat Cards */}
