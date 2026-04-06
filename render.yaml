@@ -43,7 +43,7 @@ services:
       # Example: https://angadia-pedhi.vercel.app
       # Multiple origins: https://angadia-pedhi.vercel.app,https://www.angadiapedhi.com
       - key: ALLOWED_ORIGINS
-        sync: false            # Set manually in Render dashboard
+        value: https://frontend-seven-psi-54.vercel.app
 
       # ── Server port (Render uses 10000 by default for Docker) ──────────────
       - key: SERVER_PORT
