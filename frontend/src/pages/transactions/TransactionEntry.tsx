@@ -7,15 +7,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Table } from '../../components/ui/Table';
+import { Badge } from '../../components/ui/Badge';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
+import { ArrowLeftRight, Zap, CalendarDays, TrendingUp, IndianRupee } from 'lucide-react';
 
 const txnSchema = z.object({
   txnDate: z.string().min(1, 'Date required'),
   senderId: z.string().min(1, 'Sender required'),
   receiverId: z.string().min(1, 'Receiver required'),
   amount: z.coerce.number().min(1, 'Amount must be > 0'),
-  vatavRate: z.coerce.number().min(0, 'Vatav rate cannot be negative'),
+  vatavRate: z.coerce.number().min(0).max(100),
   narration: z.string().optional(),
 });
 
@@ -24,8 +26,6 @@ type TxnForm = z.infer<typeof txnSchema>;
 export function TransactionEntry() {
   const queryClient = useQueryClient();
   const formRef = useRef<HTMLFormElement>(null);
-  
-  // Real-time UI calculations
   const [vatavPreview, setVatavPreview] = useState(0);
 
   const { register, handleSubmit, watch, reset, setFocus, formState: { errors } } = useForm<any>({
@@ -47,7 +47,6 @@ export function TransactionEntry() {
     }
   }, [amountWatch, vatavRateWatch]);
 
-  // Enter-key fast navigation constraint
   const handleKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -55,22 +54,19 @@ export function TransactionEntry() {
       if (!form) return;
       const elements = Array.from(form.elements) as HTMLElement[];
       const index = elements.indexOf(e.target as HTMLElement);
-      // Skip over disabled/hidden elements
       let nextIndex = index + 1;
-      while (nextIndex < elements.length && 
-            (elements[nextIndex].tagName === 'BUTTON' || (elements[nextIndex] as HTMLInputElement).disabled)) {
+      while (nextIndex < elements.length &&
+        (elements[nextIndex].tagName === 'BUTTON' || (elements[nextIndex] as HTMLInputElement).disabled)) {
         nextIndex++;
       }
       if (nextIndex < elements.length && elements[nextIndex].tagName !== 'BUTTON') {
         elements[nextIndex].focus();
       } else {
-        // Submit if end of form
         handleSubmit(onSubmit)();
       }
     }
   };
 
-  // Queries
   const { data: parties } = useQuery({
     queryKey: ['parties_list'],
     queryFn: async () => (await api.get('/parties')).data.data.content
@@ -84,89 +80,212 @@ export function TransactionEntry() {
   const mutCreate = useMutation({
     mutationFn: (data: TxnForm) => api.post('/transactions', data),
     onSuccess: () => {
-      toast.success('Transaction Saved!');
+      toast.success('Transaction saved!');
       queryClient.invalidateQueries({ queryKey: ['daybook'] });
-      reset({ txnDate: watch('txnDate'), vatavRate: watch('vatavRate') }); // keep date and vatav rate constant for flow
+      reset({ txnDate: watch('txnDate'), vatavRate: watch('vatavRate') });
       setFocus('senderId');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Error saving')
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Error saving transaction')
   });
 
   const onSubmit: SubmitHandler<TxnForm> = (data) => mutCreate.mutate(data);
 
+  const activeTxns = daybook?.filter((t: any) => t.status === 'ACTIVE') || [];
+  const todayVolume = activeTxns.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+  const todayVatav = activeTxns.reduce((sum: number, t: any) => sum + (t.vatavAmount || 0), 0);
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      
-      {/* Fast Entry Form */}
-      <div className="xl:col-span-1 bg-white p-6 rounded-xl border border-surface-200 shadow-sm h-fit">
-        <h2 className="text-lg font-bold text-surface-900 mb-6 border-b pb-2">Fast Transaction Entry</h2>
-        <form ref={formRef} onSubmit={handleSubmit(onSubmit)} onKeyDown={handleKeyDown} className="space-y-4">
-          <Input label="Date" type="date" {...register('txnDate')} error={errors.txnDate?.message as any} />
-          
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-surface-700">Sender Party (Dr)</label>
-            <select 
-              {...register('senderId')}
-              className="w-full px-3 py-2 bg-white border border-surface-300 rounded-lg text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            >
-              <option value="">Select Sender...</option>
-              {parties?.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.cityName})</option>)}
-            </select>
-            {errors.senderId && <p className="text-sm text-red-500">{errors.senderId.message as any}</p>}
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-surface-700">Receiver Party (Cr)</label>
-            <select 
-              {...register('receiverId')}
-              className="w-full px-3 py-2 bg-white border border-surface-300 rounded-lg text-surface-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            >
-              <option value="">Select Receiver...</option>
-              {parties?.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.cityName})</option>)}
-            </select>
-            {errors.receiverId && <p className="text-sm text-red-500">{errors.receiverId.message as any}</p>}
-          </div>
-
-          <div className="flex gap-4">
-            <Input label="Amount (₹)" type="number" step="0.01" {...register('amount')} error={errors.amount?.message as any} />
-            <Input label="Vatav (%)" type="number" step="0.01" {...register('vatavRate')} error={errors.vatavRate?.message as any} />
-          </div>
-
-          <div className="bg-surface-50 p-3 rounded-lg border border-surface-200">
-            <p className="text-sm text-surface-500">Live Commission Preview</p>
-            <p className="text-lg font-bold text-amber-600">₹ {vatavPreview.toFixed(2)}</p>
-          </div>
-
-          <Input label="Narration" type="text" {...register('narration')} />
-
-          <Button type="button" onClick={handleSubmit(onSubmit)} className="w-full" isLoading={mutCreate.isPending}>
-            Save (Enter)
-          </Button>
-        </form>
+    <div className="space-y-6 animate-slide-up">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+          <ArrowLeftRight className="w-6 h-6 text-indigo-500" />
+          Transactions
+        </h1>
+        <p className="page-desc">
+          Record hawala transfers between parties. Enter the sender (Dr), receiver (Cr), amount and vatav (commission %). 
+          The daybook shows all of today's entries in real time.
+        </p>
       </div>
 
-      {/* Daybook Preview */}
-      <div className="xl:col-span-2">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-surface-900">Today's Daybook</h2>
-          <span className="text-sm bg-primary-50 text-primary-700 px-3 py-1 rounded-full font-medium">
-            {daybook?.filter((t:any) => t.status==='ACTIVE').length || 0} Txns
-          </span>
+      {/* Today's summary strip */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "Today's Entries", value: activeTxns.length, icon: CalendarDays, color: 'text-indigo-600 bg-indigo-50' },
+          { label: 'Volume Moved', value: `₹${todayVolume.toLocaleString('en-IN')}`, icon: IndianRupee, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Vatav Earned', value: `₹${todayVatav.toLocaleString('en-IN')}`, icon: TrendingUp, color: 'text-amber-600 bg-amber-50' },
+        ].map(s => {
+          const Icon = s.icon;
+          return (
+            <div key={s.label} className="section-card p-4 flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${s.color}`}>
+                <Icon className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">{s.label}</p>
+                <p className="text-lg font-bold text-slate-900">{s.value}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* ─── Create Transaction Form ─── */}
+        <div className="xl:col-span-1">
+          <div className="section-card overflow-hidden">
+            {/* Form header */}
+            <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-violet-50 flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 rounded-xl">
+                <Zap className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-900 text-sm">New Transaction</h2>
+                <p className="text-xs text-slate-500">Press Enter to jump between fields</p>
+              </div>
+            </div>
+
+            <form ref={formRef} onSubmit={handleSubmit(onSubmit)} onKeyDown={handleKeyDown} className="p-6 space-y-4">
+              <Input
+                label="Transaction Date"
+                type="date"
+                {...register('txnDate')}
+                error={errors.txnDate?.message as any}
+                required
+              />
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Sender Party (Dr) <span className="text-red-400">*</span>
+                </label>
+                <select {...register('senderId')} className="form-select">
+                  <option value="">— Select Sender —</option>
+                  {parties?.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}  {p.cityName ? `(${p.cityName})` : ''}</option>
+                  ))}
+                </select>
+                {errors.senderId && <p className="text-xs text-red-500">⚠ {errors.senderId.message as any}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Receiver Party (Cr) <span className="text-red-400">*</span>
+                </label>
+                <select {...register('receiverId')} className="form-select">
+                  <option value="">— Select Receiver —</option>
+                  {parties?.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}  {p.cityName ? `(${p.cityName})` : ''}</option>
+                  ))}
+                </select>
+                {errors.receiverId && <p className="text-xs text-red-500">⚠ {errors.receiverId.message as any}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Amount (₹)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  {...register('amount')}
+                  error={errors.amount?.message as any}
+                  required
+                />
+                <Input
+                  label="Vatav (%)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="0.25"
+                  {...register('vatavRate')}
+                  error={errors.vatavRate?.message as any}
+                />
+              </div>
+
+              {/* Live vatav preview */}
+              <div className="flex items-center justify-between p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+                <div>
+                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">Commission Preview</p>
+                  <p className="text-2xl font-extrabold text-amber-600 mt-0.5">
+                    ₹ {vatavPreview.toFixed(2)}
+                  </p>
+                </div>
+                <TrendingUp className="w-8 h-8 text-amber-300" />
+              </div>
+
+              <Input
+                label="Narration / Note"
+                type="text"
+                placeholder="Optional description..."
+                {...register('narration')}
+              />
+
+              <Button
+                type="button"
+                onClick={handleSubmit(onSubmit)}
+                className="w-full"
+                size="lg"
+                isLoading={mutCreate.isPending}
+              >
+                <ArrowLeftRight className="w-4 h-4" />
+                Save Transaction
+              </Button>
+            </form>
+          </div>
         </div>
-        <Table 
-          data={daybook?.filter((t:any) => t.status === 'ACTIVE') || []}
-          isLoading={loadDaybook}
-          keyExtractor={(t) => t.id}
-          columns={[
-            { header: 'Txn No', accessor: (t:any) => t.txnNumber },
-            { header: 'Sender', accessor: (t:any) => t.senderName, className: 'text-red-600 font-medium' },
-            { header: 'Receiver', accessor: (t:any) => t.receiverName, className: 'text-green-600 font-medium' },
-            { header: 'Amount ₹', accessor: (t:any) => t.amount.toLocaleString(), className: 'font-bold' },
-            { header: 'Vatav ₹', accessor: (t:any) => t.vatavAmount.toLocaleString(), className: 'text-amber-600' }
-          ]}
-        />
-      </div>
 
+        {/* ─── Daybook ─── */}
+        <div className="xl:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-slate-900 text-lg">Today's Daybook</h2>
+            <Badge variant="indigo" dot>{activeTxns.length} Transactions</Badge>
+          </div>
+
+          <div className="section-card overflow-hidden">
+            <Table
+              data={activeTxns}
+              isLoading={loadDaybook}
+              keyExtractor={(t: any) => t.id}
+              emptyMessage="No transactions recorded today. Use the form to add your first entry."
+              emptyIcon={<ArrowLeftRight className="w-8 h-8 text-slate-200" />}
+              columns={[
+                { header: 'Txn #', accessor: (t: any) => <span className="font-mono text-xs text-slate-500">{t.txnNumber}</span> },
+                {
+                  header: 'Sender',
+                  accessor: (t: any) => (
+                    <span className="font-semibold text-red-600">{t.senderName}</span>
+                  )
+                },
+                {
+                  header: 'Receiver',
+                  accessor: (t: any) => (
+                    <span className="font-semibold text-emerald-600">{t.receiverName}</span>
+                  )
+                },
+                {
+                  header: 'Amount ₹',
+                  accessor: (t: any) => (
+                    <span className="font-bold text-slate-900">₹{t.amount?.toLocaleString('en-IN')}</span>
+                  )
+                },
+                {
+                  header: 'Vatav ₹',
+                  accessor: (t: any) => (
+                    <Badge variant="warning">₹{t.vatavAmount?.toLocaleString('en-IN')}</Badge>
+                  )
+                },
+                {
+                  header: 'Date',
+                  accessor: (t: any) => (
+                    <span className="text-xs text-slate-400">{t.txnDate}</span>
+                  )
+                },
+              ]}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

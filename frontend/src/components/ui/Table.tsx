@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface TableColumn<T> {
   header: string;
@@ -12,39 +13,58 @@ interface TableProps<T> {
   keyExtractor: (item: T) => string;
   isLoading?: boolean;
   emptyMessage?: string;
+  emptyIcon?: React.ReactNode;
 }
 
-export function Table<T>({ data, columns, keyExtractor, isLoading, emptyMessage = 'No data available' }: TableProps<T>) {
+export function Table<T>({ data, columns, keyExtractor, isLoading, emptyMessage = 'No data available', emptyIcon }: TableProps<T>) {
   return (
-    <div className="overflow-x-auto bg-white border border-surface-200 rounded-xl shadow-sm">
-      <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="bg-surface-50 border-b border-surface-200 text-surface-600">
-          <tr>
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead>
+          <tr className="border-b border-slate-100 bg-slate-50/80">
             {columns.map((col, idx) => (
-              <th key={idx} className={`px-6 py-3 font-semibold ${col.className || ''}`}>
+              <th
+                key={idx}
+                className={`px-5 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-wide whitespace-nowrap ${col.className || ''}`}
+              >
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-surface-100">
+        <tbody className="divide-y divide-slate-100">
           {isLoading ? (
-            <tr>
-              <td colSpan={columns.length} className="px-6 py-8 text-center text-surface-500">
-                Loading...
-              </td>
-            </tr>
+            // Skeleton rows
+            Array.from({ length: 5 }).map((_, i) => (
+              <tr key={i} className="animate-pulse">
+                {columns.map((_, j) => (
+                  <td key={j} className="px-5 py-4">
+                    <div className="h-4 bg-slate-200 rounded-lg w-3/4" />
+                  </td>
+                ))}
+              </tr>
+            ))
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-8 text-center text-surface-500">
-                {emptyMessage}
+              <td colSpan={columns.length} className="px-6 py-16 text-center">
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  {emptyIcon || (
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-slate-300" />
+                    </div>
+                  )}
+                  <p className="text-sm font-medium">{emptyMessage}</p>
+                </div>
               </td>
             </tr>
           ) : (
             data.map((item) => (
-              <tr key={keyExtractor(item)} className="hover:bg-surface-50/50 transition-colors">
+              <tr
+                key={keyExtractor(item)}
+                className="hover:bg-indigo-50/40 transition-colors duration-100 group"
+              >
                 {columns.map((col, idx) => (
-                  <td key={idx} className={`px-6 py-4 text-surface-700 ${col.className || ''}`}>
+                  <td key={idx} className={`px-5 py-3.5 text-slate-700 whitespace-nowrap ${col.className || ''}`}>
                     {col.accessor(item)}
                   </td>
                 ))}

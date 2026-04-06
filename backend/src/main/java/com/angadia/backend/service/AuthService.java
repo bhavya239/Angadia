@@ -5,6 +5,7 @@ import com.angadia.backend.domain.entity.User;
 import com.angadia.backend.domain.enums.AuditAction;
 import com.angadia.backend.dto.request.LoginRequest;
 import com.angadia.backend.dto.request.RefreshTokenRequest;
+import com.angadia.backend.dto.request.SignupRequest;
 import com.angadia.backend.dto.response.AuthResponse;
 import com.angadia.backend.exception.BusinessRuleException;
 import com.angadia.backend.repository.RefreshTokenRepository;
@@ -62,6 +63,36 @@ public class AuthService {
 
         auditLogService.logAsync(user.getId(), user.getUsername(), AuditAction.LOGIN,
             "User", user.getId(), null, null, ipAddress, userAgent);
+
+        return response;
+    }
+
+    public AuthResponse signup(SignupRequest request, String ipAddress, String userAgent) {
+        if (userRepository.findByUsername(request.username()).isPresent()) {
+            throw new BusinessRuleException("Username is already taken");
+        }
+
+        org.springframework.security.crypto.password.PasswordEncoder encoder = 
+            new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(12);
+
+        User user = User.builder()
+            .username(request.username())
+            .passwordHash(encoder.encode(request.password()))
+            .fullName(request.fullName())
+            .role(Role.STAFF) // Default public signup role
+            .active(true)
+            .locked(false)
+            .failedAttemptCount(0)
+            .createdAt(Instant.now())
+            .lastLoginAt(Instant.now())
+            .build();
+
+        user = userRepository.save(user);
+
+        AuthResponse response = buildAuthResponse(user);
+
+        auditLogService.logAsync(user.getId(), user.getUsername(), AuditAction.LOGIN,
+            "User", user.getId(), null, "User signed up", ipAddress, userAgent);
 
         return response;
     }

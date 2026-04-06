@@ -5,63 +5,65 @@ import { z } from 'zod';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
 
-const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+const signupSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username too long'),
+  fullName: z.string().min(1, 'Full name is required'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-type LoginForm = z.infer<typeof loginSchema>;
+type SignupForm = z.infer<typeof signupSchema>;
 
-export function Login() {
+export function Signup() {
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = location.state?.from?.pathname || '/';
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
+  const { register, handleSubmit, formState: { errors } } = useForm<SignupForm>({
+    resolver: zodResolver(signupSchema),
   });
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const onSubmit = async (data: LoginForm) => {
+  const onSubmit = async (data: SignupForm) => {
     setIsLoading(true);
     try {
-      const response = await api.post('/auth/login', data);
+      const response = await api.post('/auth/signup', data);
       const { accessToken, id, username, role, fullName } = response.data.data;
       
       setAuth(accessToken, { id, username, role, fullName });
-      toast.success(`Welcome back, ${fullName}!`);
-      navigate(from, { replace: true });
+      toast.success(`Welcome to Angadia Pedhi, ${fullName}!`);
+      navigate('/', { replace: true });
     } catch (error: any) {
-      if (error.response?.status === 403 || error.response?.status === 429) {
-          toast.error(error.response?.data?.message || 'Account locked or rate limited. Try again later.');
-      } else {
-          toast.error(error.response?.data?.message || 'Invalid username or password');
-      }
+      toast.error(error.response?.data?.message || 'Failed to register account');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl border border-surface-200 shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl border border-slate-200 shadow-xl">
         <div>
-          <h2 className="text-center text-3xl font-extrabold text-primary-700">
+          <h2 className="text-center text-3xl font-extrabold text-indigo-700">
             Angadia Pedhi
           </h2>
-          <p className="mt-2 text-center text-sm text-surface-600">
-            Sign in to manage your ledgers privately.
+          <p className="mt-2 text-center text-sm text-slate-600">
+            Create an account to start managing your ledgers
           </p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4 rounded-md shadow-sm">
+            <Input
+              label="Full Name"
+              type="text"
+              autoComplete="name"
+              {...register('fullName')}
+              error={errors.fullName?.message}
+            />
             <Input
               label="Username"
               type="text"
@@ -72,20 +74,20 @@ export function Login() {
             <Input
               label="Password"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               {...register('password')}
               error={errors.password?.message}
             />
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Authenticating...' : 'Sign in securely'}
+            {isLoading ? 'Creating Account...' : 'Sign Up securely'}
           </Button>
-
+          
           <div className="text-sm text-center">
-            <span className="text-slate-500">Don't have an account? </span>
-            <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500">
-              Sign up
+            <span className="text-slate-500">Already have an account? </span>
+            <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-500">
+              Sign in
             </Link>
           </div>
         </form>

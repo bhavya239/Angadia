@@ -3,6 +3,7 @@ package com.angadia.backend.controller;
 import com.angadia.backend.domain.entity.User;
 import com.angadia.backend.dto.request.LoginRequest;
 import com.angadia.backend.dto.request.RefreshTokenRequest;
+import com.angadia.backend.dto.request.SignupRequest;
 import com.angadia.backend.dto.response.ApiResponse;
 import com.angadia.backend.dto.response.AuthResponse;
 import com.angadia.backend.service.AuthService;
@@ -31,6 +32,16 @@ public class AuthController {
     ) {
         AuthResponse response = authService.login(request, getIp(httpRequest), getAgent(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(response, "Login successful"));
+    }
+
+    @Operation(summary = "Register a new user account")
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<AuthResponse>> signup(
+        @Valid @RequestBody SignupRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        AuthResponse response = authService.signup(request, getIp(httpRequest), getAgent(httpRequest));
+        return ResponseEntity.ok(ApiResponse.success(response, "Registration successful"));
     }
 
     @Operation(summary = "Refresh access token using refresh token")

@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Table } from '../../components/ui/Table';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import api from '../../lib/axios';
+import { Scale, AlertTriangle } from 'lucide-react';
 
 export function TrialBalance() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -19,50 +21,96 @@ export function TrialBalance() {
     enabled: !!submittedDate
   });
 
-  const cols = [
-    { header: 'Party Code', accessor: (p:any) => p.partyCode },
-    { header: 'Name', accessor: (p:any) => <span className="font-medium text-surface-900">{p.partyName}</span> },
-    { header: 'City', accessor: (p:any) => p.cityName },
-    { header: 'Debit (Dr)', accessor: (p:any) => p.totalDr > 0 ? p.totalDr.toLocaleString() : '-', className: 'text-red-600 text-right' },
-    { header: 'Credit (Cr)', accessor: (p:any) => p.totalCr > 0 ? p.totalCr.toLocaleString() : '-', className: 'text-green-600 text-right' },
-  ];
-
   const handleFetch = (e: React.FormEvent) => {
     e.preventDefault();
     if (date) setSubmittedDate(date);
   };
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-surface-900">Trial Balance</h1>
+  const cols = [
+    {
+      header: 'Code',
+      accessor: (p: any) => <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">{p.partyCode}</span>
+    },
+    {
+      header: 'Party Name',
+      accessor: (p: any) => <span className="font-semibold text-slate-900">{p.partyName}</span>
+    },
+    { header: 'City', accessor: (p: any) => p.cityName },
+    {
+      header: 'Debit (Dr)',
+      accessor: (p: any) => p.totalDr > 0
+        ? <span className="font-semibold text-red-600">₹{p.totalDr.toLocaleString('en-IN')}</span>
+        : <span className="text-slate-300">—</span>
+    },
+    {
+      header: 'Credit (Cr)',
+      accessor: (p: any) => p.totalCr > 0
+        ? <span className="font-semibold text-emerald-600">₹{p.totalCr.toLocaleString('en-IN')}</span>
+        : <span className="text-slate-300">—</span>
+    },
+  ];
 
-      <div className="bg-white p-4 rounded-xl border border-surface-200 shadow-sm">
+  return (
+    <div className="space-y-6 animate-slide-up">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+          <Scale className="w-6 h-6 text-indigo-500" />
+          Trial Balance
+        </h1>
+        <p className="page-desc">
+          A snapshot of all party balances on a given date. Use this to verify your books are balanced
+          (total Debits = total Credits) before closing the accounting period.
+        </p>
+      </div>
+
+      {/* Filter */}
+      <div className="section-card p-5">
         <form onSubmit={handleFetch} className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="flex-1 max-w-xs">
+          <div className="w-full max-w-xs">
             <Input label="As of Date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
           </div>
-          <Button type="submit" className="h-[42px]">Generate Report</Button>
+          <Button type="submit" className="h-[46px] px-8" isLoading={isLoading}>
+            Generate Report
+          </Button>
         </form>
       </div>
 
       {tb && (
-        <div className="bg-white rounded-xl border border-surface-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-surface-200 bg-surface-50">
-            <h2 className="font-semibold text-surface-900">Financial Year: {tb.financialYear}</h2>
-          </div>
-          
-          <Table data={tb.entries || []} columns={cols} keyExtractor={(e:any) => e.partyId} isLoading={isLoading} />
-          
-          <div className="bg-white p-4 border-t border-surface-200">
-            <div className="flex justify-between md:justify-end md:gap-24 font-bold text-lg">
-              <span className="text-surface-700">Grand Totals:</span>
-              <span className="text-red-700 text-right">{tb.grandTotalDr.toLocaleString()}</span>
-              <span className="text-green-700 text-right w-32">{tb.grandTotalCr.toLocaleString()}</span>
+        <div className="section-card overflow-hidden animate-slide-up">
+          <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50/30 flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-slate-900">Financial Year: {tb.financialYear}</h2>
+              <p className="text-xs text-slate-500 mt-0.5">As of {submittedDate}</p>
             </div>
             {tb.netDifference > 0 && (
-              <div className="flex justify-end mt-2 text-red-500 text-sm">
-                Warning: Ledger out of balance by ₹{tb.netDifference.toLocaleString()}
-              </div>
+              <Badge variant="danger" dot>
+                <AlertTriangle className="w-3 h-3" /> Out of Balance
+              </Badge>
+            )}
+            {tb.netDifference === 0 && (
+              <Badge variant="success" dot>Books Balanced ✓</Badge>
+            )}
+          </div>
+
+          <Table
+            data={tb.entries || []}
+            columns={cols}
+            keyExtractor={(e: any) => e.partyId}
+            isLoading={isLoading}
+            emptyMessage="No party balances found for this date"
+          />
+
+          <div className="p-5 border-t border-slate-100 bg-slate-50/50">
+            <div className="flex justify-between md:justify-end md:gap-16 font-bold text-base">
+              <span className="text-slate-500">Grand Totals</span>
+              <span className="text-red-600">Dr: ₹{tb.grandTotalDr?.toLocaleString('en-IN')}</span>
+              <span className="text-emerald-600">Cr: ₹{tb.grandTotalCr?.toLocaleString('en-IN')}</span>
+            </div>
+            {tb.netDifference > 0 && (
+              <p className="text-right mt-2 text-red-500 text-xs">
+                ⚠ Ledger out of balance by ₹{tb.netDifference?.toLocaleString('en-IN')}
+              </p>
             )}
           </div>
         </div>
