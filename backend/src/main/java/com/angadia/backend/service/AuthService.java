@@ -3,6 +3,7 @@ package com.angadia.backend.service;
 import com.angadia.backend.domain.entity.RefreshToken;
 import com.angadia.backend.domain.entity.User;
 import com.angadia.backend.domain.enums.AuditAction;
+import com.angadia.backend.domain.enums.Role;
 import com.angadia.backend.dto.request.LoginRequest;
 import com.angadia.backend.dto.request.RefreshTokenRequest;
 import com.angadia.backend.dto.request.SignupRequest;
@@ -80,8 +81,8 @@ public class AuthService {
             .passwordHash(encoder.encode(request.password()))
             .fullName(request.fullName())
             .role(Role.STAFF) // Default public signup role
-            .active(true)
-            .locked(false)
+            .isActive(true)
+            .isLocked(false)
             .failedAttemptCount(0)
             .createdAt(Instant.now())
             .lastLoginAt(Instant.now())
