@@ -1,0 +1,152 @@
+package com.angadia.backend.service;
+
+import com.angadia.backend.domain.entity.Party;
+import com.angadia.backend.domain.enums.AuditAction;
+import com.angadia.backend.dto.request.CreatePartyRequest;
+import com.angadia.backend.dto.response.PartyResponse;
+import com.angadia.backend.exception.BusinessRuleException;
+import com.angadia.backend.exception.EntityNotFoundException;
+import com.angadia.backend.repository.CityRepository;
+import com.angadia.backend.repository.PartyRepository;
+import com.angadia.backend.repository.TransactionRepository;
+import com.angadia.backend.util.SequenceGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class PartyService {
+
+    private final PartyRepository partyRepository;
+    private final CityRepository cityRepository;
+    private final TransactionRepository transactionRepository;
+    private final SequenceGenerator sequenceGenerator;
+    private final AuditLogService auditLogService;
+    private final ObjectMapper objectMapper;
+
+    public PartyResponse createParty(CreatePartyRequest req, String userId, String username,
+                                     String ipAddress, String userAgent) {
+        var city = cityRepository.findById(req.cityId())
+            .orElseThrow(() -> new EntityNotFoundException("City not found: " + req.cityId()));
+
+        if (!city.isActive()) throw new BusinessRuleException("Selected city is inactive");
+
+        if (partyRepository.existsByNameIgnoreCaseAndCityId(req.name().trim(), city.getId())) {
+             throw new BusinessRuleException("A party with this exact name already exists in this city.");
+        }
+        if (partyRepository.existsByPhone(req.phone())) {
+             throw new BusinessRuleException("This phone number is already registered to another party.");
+        }
+
+        String partyCode = sequenceGenerator.generatePartyCode(city.getName());
+
+        Party party = Party.builder()
+            .partyCode(partyCode)
+            .name(req.name().trim())
+            .cityId(city.getId())
+            .cityName(city.getName())
+            .phone(req.phone())
+            .address(req.address())
+            .partyType(req.partyType())
+            .crRoi(req.crRoi() != null ? req.crRoi() : BigDecimal.ZERO)
+            .drRoi(req.drRoi() != null ? req.drRoi() : BigDecimal.ZERO)
+            .openingBalance(req.openingBalance() != null ? req.openingBalance() : BigDecimal.ZERO)
+            .openingBalanceType(req.openingBalanceType())
+            .createdBy(userId)
+            .build();
+
+        Party saved = partyRepository.save(party);
+        log.info("Party created: {} by user {}", partyCode, username);
+
+        auditLogService.logAsync(userId, username, AuditAction.PARTY_CREATED,
+            "Party", saved.getId(), null, toJson(saved), ipAddress, userAgent);
+
+        return toResponse(saved);
+    }
+
+    public Page<PartyResponse> searchParties(String term, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        Page<Party> parties = (term != null && !term.isBlank())
+            ? partyRepository.searchActive(term, pageable)
+            : partyRepository.findByIsActive(true, pageable);
+        return parties.map(this::toResponse);
+    }
+
+    public PartyResponse getParty(String id) {
+        return toResponse(findById(id));
+    }
+
+    public PartyResponse updateParty(String id, CreatePartyRequest req,
+                                     String userId, String username,
+                                     String ipAddress, String userAgent) {
+        Party existing = findById(id);
+        String oldJson  = toJson(existing);
+
+        var city = cityRepository.findById(req.cityId())
+            .orElseThrow(() -> new EntityNotFoundException("City not found: " + req.cityId()));
+
+        existing.setName(req.name().trim());
+        existing.setCityId(city.getId());
+        existing.setCityName(city.getName());
+        existing.setPhone(req.phone());
+        existing.setAddress(req.address());
+        existing.setPartyType(req.partyType());
+        existing.setCrRoi(req.crRoi() != null ? req.crRoi() : BigDecimal.ZERO);
+        existing.setDrRoi(req.drRoi() != null ? req.drRoi() : BigDecimal.ZERO);
+
+        Party saved = partyRepository.save(existing);
+
+        auditLogService.logAsync(userId, username, AuditAction.PARTY_UPDATED,
+            "Party", saved.getId(), oldJson, toJson(saved), ipAddress, userAgent);
+
+        return toResponse(saved);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteParty(String id, String userId, String username,
+                            String ipAddress, String userAgent) {
+        Party party = findById(id);
+        
+        boolean hasTransactions = transactionRepository.existsBySenderIdOrReceiverId(id, id);
+        if (hasTransactions) {
+            throw new BusinessRuleException("Cannot delete party: Active transactions exist.");
+        }
+
+        party.setActive(false);
+        partyRepository.save(party);
+
+        auditLogService.logAsync(userId, username, AuditAction.PARTY_DELETED,
+            "Party", id, toJson(party), null, ipAddress, userAgent);
+    }
+
+    public long getActivePartyCount() {
+        return partyRepository.countByIsActiveTrue();
+    }
+
+    private Party findById(String id) {
+        return partyRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Party not found: " + id));
+    }
+
+    private PartyResponse toResponse(Party p) {
+        return new PartyResponse(
+            p.getId(), p.getPartyCode(), p.getName(),
+            p.getCityId(), p.getCityName(), p.getPhone(), p.getAddress(),
+            p.getPartyType(), p.getCrRoi(), p.getDrRoi(),
+            p.getOpeningBalance(), p.getOpeningBalanceType(),
+            p.isActive(), p.getCreatedAt(), p.getUpdatedAt()
+        );
+    }
+
+    private String toJson(Object obj) {
+        try { return objectMapper.writeValueAsString(obj); }
+        catch (Exception e) { return "{}"; }
+    }
+}

@@ -1,0 +1,73 @@
+package com.angadia.backend.config;
+
+import org.bson.types.Decimal128;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
+import org.springframework.data.mongodb.core.index.IndexOperations;
+import org.springframework.data.mongodb.core.index.IndexResolver;
+import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
+import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
+
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import com.angadia.backend.domain.entity.*;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+
+@Slf4j
+@Configuration
+@RequiredArgsConstructor
+public class MongoConfig {
+
+    private final MongoTemplate mongoTemplate;
+    private final MongoMappingContext mongoMappingContext;
+
+    /**
+     * Custom BigDecimal <-> Decimal128 converters.
+     * CRITICAL: Without these, MongoDB stores BigDecimal as String or Double
+     * causing precision loss in financial calculations.
+     */
+    @Bean
+    public MongoCustomConversions mongoCustomConversions() {
+        return new MongoCustomConversions(Arrays.asList(
+            (Converter<Decimal128, BigDecimal>) source -> source.bigDecimalValue(),
+            (Converter<BigDecimal, Decimal128>) source -> new Decimal128(source)
+        ));
+    }
+
+    /**
+     * Programmatic index creation at startup.
+     * We set auto-index-creation: false in yml and manage here for full control.
+     */
+    @PostConstruct
+    public void initIndexes() {
+        log.info("Initializing MongoDB indexes...");
+
+        List<Class<?>> indexedEntities = List.of(
+            User.class,
+            City.class,
+            Party.class,
+            Transaction.class,
+            OpeningBalance.class,
+            AuditLog.class,
+            RefreshToken.class,
+            VatavRate.class
+        );
+
+        IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
+
+        for (Class<?> entity : indexedEntities) {
+            IndexOperations ops = mongoTemplate.indexOps(entity);
+            resolver.resolveIndexFor(entity).forEach(ops::ensureIndex);
+        }
+
+        log.info("MongoDB indexes initialized successfully.");
+    }
+}
