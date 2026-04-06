@@ -1,17 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
-
-interface City {
-  id: string;
-  name: string;
-  state: string;
-}
 
 interface Party {
   id?: string;
