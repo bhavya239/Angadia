@@ -71,8 +71,14 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
       setForm(defaultForm);
       onClose();
     },
-    onError: (err: any) =>
-      toast.error(err.response?.data?.message || 'Failed to save party. Check required fields.'),
+    onError: (err: any) => {
+      const data = err.response?.data;
+      if (data?.fieldErrors && data.fieldErrors.length > 0) {
+        toast.error(data.fieldErrors.map((f: any) => f.message).join(' | '));
+      } else {
+        toast.error(data?.message || 'Failed to save party. Check required fields.');
+      }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
