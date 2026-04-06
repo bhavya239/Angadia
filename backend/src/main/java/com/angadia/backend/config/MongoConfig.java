@@ -11,8 +11,7 @@ import org.springframework.data.mongodb.core.index.IndexResolver;
 import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 
-import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
+import org.springframework.boot.ApplicationRunner;
 import lombok.extern.slf4j.Slf4j;
 
 import com.angadia.backend.domain.entity.*;
@@ -23,11 +22,7 @@ import java.util.List;
 
 @Slf4j
 @Configuration
-@RequiredArgsConstructor
 public class MongoConfig {
-
-    private final MongoTemplate mongoTemplate;
-    private final MongoMappingContext mongoMappingContext;
 
     /**
      * Custom BigDecimal <-> Decimal128 converters.
@@ -46,28 +41,30 @@ public class MongoConfig {
      * Programmatic index creation at startup.
      * We set auto-index-creation: false in yml and manage here for full control.
      */
-    @PostConstruct
-    public void initIndexes() {
-        log.info("Initializing MongoDB indexes...");
+    @Bean
+    public ApplicationRunner initIndexes(MongoTemplate mongoTemplate, MongoMappingContext mongoMappingContext) {
+        return args -> {
+            log.info("Initializing MongoDB indexes...");
 
-        List<Class<?>> indexedEntities = List.of(
-            User.class,
-            City.class,
-            Party.class,
-            Transaction.class,
-            OpeningBalance.class,
-            AuditLog.class,
-            RefreshToken.class,
-            VatavRate.class
-        );
+            List<Class<?>> indexedEntities = List.of(
+                User.class,
+                City.class,
+                Party.class,
+                Transaction.class,
+                OpeningBalance.class,
+                AuditLog.class,
+                RefreshToken.class,
+                VatavRate.class
+            );
 
-        IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
+            IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
 
-        for (Class<?> entity : indexedEntities) {
-            IndexOperations ops = mongoTemplate.indexOps(entity);
-            resolver.resolveIndexFor(entity).forEach(ops::ensureIndex);
-        }
+            for (Class<?> entity : indexedEntities) {
+                IndexOperations ops = mongoTemplate.indexOps(entity);
+                resolver.resolveIndexFor(entity).forEach(ops::ensureIndex);
+            }
 
-        log.info("MongoDB indexes initialized successfully.");
+            log.info("MongoDB indexes initialized successfully.");
+        };
     }
 }
