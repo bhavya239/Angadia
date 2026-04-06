@@ -32,8 +32,18 @@ public class MongoConfig {
     @Bean
     public MongoCustomConversions mongoCustomConversions() {
         return new MongoCustomConversions(Arrays.asList(
-            (Converter<Decimal128, BigDecimal>) source -> source.bigDecimalValue(),
-            (Converter<BigDecimal, Decimal128>) source -> new Decimal128(source)
+            new Converter<Decimal128, BigDecimal>() {
+                @Override
+                public BigDecimal convert(Decimal128 source) {
+                    return source.bigDecimalValue();
+                }
+            },
+            new Converter<BigDecimal, Decimal128>() {
+                @Override
+                public Decimal128 convert(BigDecimal source) {
+                    return new Decimal128(source);
+                }
+            }
         ));
     }
 
