@@ -49,12 +49,29 @@ public interface TransactionRepository extends MongoRepository<Transaction, Stri
     // Global counts and sums
     long countByStatus(TransactionStatus status);
 
+    record AggregationSum(BigDecimal total) {}
+
     @Aggregation(pipeline = { "{ $match: { status: 'ACTIVE' } }", "{ $group: { _id: null, total: { $sum: '$amount' } } }" })
-    BigDecimal sumTotalAmount();
+    AggregationSum getSumTotalAmount();
+
+    default BigDecimal sumTotalAmount() {
+        AggregationSum res = getSumTotalAmount();
+        return res != null && res.total() != null ? res.total() : BigDecimal.ZERO;
+    }
 
     @Aggregation(pipeline = { "{ $match: { status: 'ACTIVE' } }", "{ $group: { _id: null, total: { $sum: '$vatavAmount' } } }" })
-    BigDecimal sumTotalVatav();
+    AggregationSum getSumTotalVatav();
+
+    default BigDecimal sumTotalVatav() {
+        AggregationSum res = getSumTotalVatav();
+        return res != null && res.total() != null ? res.total() : BigDecimal.ZERO;
+    }
 
     @Aggregation(pipeline = { "{ $match: { status: 'ACTIVE', txnDate: { $lt: ?0 } } }", "{ $group: { _id: null, total: { $sum: '$vatavAmount' } } }" })
-    BigDecimal sumGlobalOpeningBalance(LocalDate date);
+    AggregationSum getSumGlobalOpeningBalance(LocalDate date);
+
+    default BigDecimal sumGlobalOpeningBalance(LocalDate date) {
+        AggregationSum res = getSumGlobalOpeningBalance(date);
+        return res != null && res.total() != null ? res.total() : BigDecimal.ZERO;
+    }
 }
