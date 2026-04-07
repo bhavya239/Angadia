@@ -71,7 +71,13 @@ public class MongoConfig {
 
             for (Class<?> entity : indexedEntities) {
                 IndexOperations ops = mongoTemplate.indexOps(entity);
-                resolver.resolveIndexFor(entity).forEach(ops::ensureIndex);
+                try {
+                    resolver.resolveIndexFor(entity).forEach(ops::ensureIndex);
+                } catch (Exception e) {
+                    log.warn("Index schema conflict detected in {}. Dropping all indexes for this entity and rebuilding...", entity.getSimpleName());
+                    ops.dropAllIndexes();
+                    resolver.resolveIndexFor(entity).forEach(ops::ensureIndex);
+                }
             }
 
             log.info("MongoDB indexes initialized successfully.");
