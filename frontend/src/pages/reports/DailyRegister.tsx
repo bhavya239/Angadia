@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { FileText, FileSpreadsheet } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import api from '../../lib/axios';
 
 export function DailyRegister() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -15,14 +16,11 @@ export function DailyRegister() {
     else setIsExportingExcel(true);
 
     try {
-      const endpoint = import.meta.env.VITE_API_URL + `/export/daily-register/${type}?date=${date}`;
-      const response = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await api.get(`/export/daily-register/${type}?date=${date}`, {
+        responseType: 'blob'
       });
 
-      if (!response.ok) throw new Error('Export failed');
-
-      const blob = await response.blob();
+      const blob = new Blob([response.data]);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

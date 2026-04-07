@@ -42,7 +42,18 @@ export function AppLayout() {
 
   // Get current page name for breadcrumb
   const allItems = navGroups.flatMap(g => g.items);
-  const currentPage = allItems.find(i => i.href === location.pathname);
+  
+  // Determine the single active sidebar item based on the longest matching href
+  let activeHref = '';
+  const sortedItems = [...allItems].sort((a, b) => b.href.length - a.href.length);
+  for (const item of sortedItems) {
+    if (location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href + '/'))) {
+      activeHref = item.href;
+      break;
+    }
+  }
+
+  const currentPage = allItems.find(i => i.href === activeHref);
 
   const initials = (user?.fullName || 'U')
     .split(' ')
@@ -96,8 +107,7 @@ export function AppLayout() {
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isActive = location.pathname === item.href ||
-                    (item.href !== '/' && location.pathname.startsWith(item.href + '/'));
+                  const isActive = item.href === activeHref;
                   const Icon = item.icon;
                   return (
                     <Link

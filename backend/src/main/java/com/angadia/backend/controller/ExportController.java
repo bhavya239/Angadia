@@ -9,6 +9,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,10 +31,10 @@ public class ExportController {
     public ResponseEntity<byte[]> exportDailyRegisterPdf(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
             byte[] pdfBytes = exportPdfService.generateDailyRegisterPdf(date);
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Content-Disposition", "attachment; filename=daily-register-" + date.toString() + ".pdf");
-            headers.add("Content-Type", "application/pdf");
-            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=daily-register-" + date.toString() + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfBytes);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -44,10 +45,10 @@ public class ExportController {
     public ResponseEntity<byte[]> exportDailyRegisterExcel(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
             byte[] excelBytes = exportExcelService.generateDailyRegisterExcel(date);
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Content-Disposition", "attachment; filename=daily-register-" + date.toString() + ".xlsx");
-            headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=daily-register-" + date.toString() + ".xlsx")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(excelBytes);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }

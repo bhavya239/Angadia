@@ -22,6 +22,10 @@ public interface TransactionRepository extends MongoRepository<Transaction, Stri
 
     boolean existsByTxnNumber(String txnNumber);
 
+    boolean existsBySenderId(String senderId);
+
+    boolean existsByReceiverId(String receiverId);
+
     boolean existsBySenderIdOrReceiverId(String senderId, String receiverId);
 
     // Daybook: all active transactions for a date

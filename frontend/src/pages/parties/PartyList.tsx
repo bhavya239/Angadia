@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { WhatsAppButton } from '../../components/ui/WhatsAppButton';
 import { PartyFormModal } from './PartyFormModal';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Plus, Search, Edit2, Trash2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
@@ -18,6 +19,7 @@ export function PartyList() {
   const [page, setPage] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editParty, setEditParty] = useState<any | null>(null);
+  const [partyToDelete, setPartyToDelete] = useState<any | null>(null);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -39,15 +41,22 @@ export function PartyList() {
     mutationFn: (id: string) => api.delete(`/parties/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parties'] });
-      toast.success('Party removed successfully');
+      toast.success('Party deleted successfully');
+      setPartyToDelete(null);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove party'),
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to delete party';
+      if (message.toLowerCase().includes('cannot be deleted')) {
+        toast.error('❌ This party has transactions. Delete transactions first.');
+      } else {
+        toast.error(message);
+      }
+      setPartyToDelete(null);
+    },
   });
 
   const handleDelete = (party: any) => {
-    if (window.confirm(`Remove "${party.name}"? This action cannot be undone.`)) {
-      deleteMutation.mutate(party.id);
-    }
+    setPartyToDelete(party);
   };
 
   const handleEdit = (party: any) => {
@@ -224,6 +233,16 @@ export function PartyList() {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEditParty(null); }}
         existing={editParty}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={!!partyToDelete}
+        onClose={() => setPartyToDelete(null)}
+        onConfirm={() => partyToDelete && deleteMutation.mutate(partyToDelete.id)}
+        title="Delete Party"
+        message={`Are you sure you want to delete "${partyToDelete?.name}"?`}
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import com.angadia.backend.domain.enums.AuditAction;
 import com.angadia.backend.dto.request.CreatePartyRequest;
 import com.angadia.backend.dto.response.PartyResponse;
 import com.angadia.backend.exception.BusinessRuleException;
+import com.angadia.backend.exception.BusinessException;
 import com.angadia.backend.exception.EntityNotFoundException;
 import com.angadia.backend.repository.CityRepository;
 import com.angadia.backend.repository.PartyRepository;
@@ -143,12 +144,12 @@ public class PartyService {
                             String ipAddress, String userAgent) {
         Party party = findById(id);
         
-        boolean hasTransactions = transactionRepository.existsBySenderIdOrReceiverId(id, id);
+        boolean hasTransactions = transactionRepository.existsBySenderId(id) || transactionRepository.existsByReceiverId(id);
         if (hasTransactions) {
-            throw new BusinessRuleException("Cannot delete party: Active transactions exist.");
+            throw new BusinessException("This party has transactions and cannot be deleted");
         }
 
-        party.setActive(false);
+        party.setIsActive(false);
         partyRepository.save(party);
 
         auditLogService.logAsync(userId, username, AuditAction.PARTY_DELETED,
