@@ -149,7 +149,7 @@ public class PartyService {
             throw new BusinessException("This party has transactions and cannot be deleted");
         }
 
-        party.setIsActive(false);
+        party.setActive(false);
         partyRepository.save(party);
 
         auditLogService.logAsync(userId, username, AuditAction.PARTY_DELETED,
