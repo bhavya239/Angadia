@@ -9,8 +9,6 @@ export function DailyRegister() {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
 
-  const token = localStorage.getItem('auth_token');
-
   const downloadFile = async (type: 'pdf' | 'excel') => {
     if (type === 'pdf') setIsExportingPdf(true);
     else setIsExportingExcel(true);
