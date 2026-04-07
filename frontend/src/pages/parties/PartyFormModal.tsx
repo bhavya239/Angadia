@@ -6,6 +6,8 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
+import { ScaledAmountInput } from '../../components/common/ScaledAmountInput';
+import { CitySelect } from '../../components/ui/CitySelect';
 
 interface Party {
   id?: string;
@@ -27,7 +29,8 @@ interface PartyFormModalProps {
   existing?: Party | null;
 }
 
-const defaultForm: Omit<Party, 'id' | 'partyCode'> = {
+const defaultForm: Omit<Party, 'id'> = {
+  partyCode: '',
   name: '',
   cityName: '',
   phone: '',
@@ -42,12 +45,14 @@ const defaultForm: Omit<Party, 'id' | 'partyCode'> = {
 export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProps) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(defaultForm);
+  const [codeError, setCodeError] = useState('');
   const isEdit = !!existing?.id;
 
   // Sync form when existing data changes
   useEffect(() => {
     if (existing) {
       setForm({
+        partyCode: existing.partyCode || '',
         name: existing.name || '',
         cityName: existing.cityName || '',
         phone: existing.phone || '',
@@ -60,11 +65,26 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
       });
     } else {
       setForm(defaultForm);
+      setCodeError('');
     }
   }, [existing, isOpen]);
 
   const set = (field: keyof typeof form, value: any) =>
     setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleCodeBlur = async () => {
+    if (isEdit || !form.partyCode) return;
+    try {
+      const res = await api.get(`/parties/code/${form.partyCode}`);
+      if (res.data.data === true) {
+        setCodeError('Code already exists');
+      } else {
+        setCodeError('');
+      }
+    } catch (err) {
+      console.error('Failed to check duplicate code', err);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: (data: typeof form) =>
@@ -93,6 +113,8 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.partyCode) return toast.error('Party code is required');
+    if (codeError) return toast.error('Fix the party code error before saving');
     if (!form.name.trim()) return toast.error('Party name is required');
     if (!form.phone.trim()) return toast.error('Phone number is required');
     if (!form.cityName.trim()) return toast.error('City/Location is required');
@@ -113,19 +135,23 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Edit mode: show auto-generated party code */}
-        {isEdit && existing?.partyCode && (
-          <div className="flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
-            <span className="text-xs text-slate-500 font-medium">Party Code:</span>
-            <span className="font-mono text-sm font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-lg border border-indigo-200">
-              {existing.partyCode}
-            </span>
-            <span className="text-xs text-slate-400 ml-auto italic">Auto-generated</span>
-          </div>
-        )}
-
         {/* Row 1 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Party Code *"
+            placeholder="e.g. AHM001"
+            value={form.partyCode || ''}
+            onChange={e => {
+                const val = e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 10);
+                set('partyCode', val);
+                if (codeError) setCodeError('');
+            }}
+            onBlur={handleCodeBlur}
+            disabled={isEdit}
+            error={codeError}
+            required
+            hint={isEdit ? "Code cannot be changed after creation" : "Unique identifier (A-Z, 0-9)"}
+          />
           <Input
             label="Party Name *"
             placeholder="e.g. Ramesh Bhai Patel"
@@ -133,8 +159,10 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
             onChange={e => set('name', e.target.value)}
             required
           />
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-slate-700">Party Type *</label>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-sm font-semibold text-slate-700">Party Type *</label>
             <select
               required
               className="form-select"
@@ -146,16 +174,12 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
               <option value="DR">DEBIT (Sender Only)</option>
             </select>
           </div>
-        </div>
 
         {/* Row 2 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label="City / Location *"
-            placeholder="e.g. Ahmedabad"
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+          <CitySelect
             value={form.cityName}
-            onChange={e => set('cityName', e.target.value)}
-            required
+            onChange={val => set('cityName', val)}
           />
           <Input
             label="Mobile / Phone *"
@@ -206,14 +230,11 @@ export function PartyFormModal({ isOpen, onClose, existing }: PartyFormModalProp
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-2">
-            <Input
+            <ScaledAmountInput
               label="Opening Balance (₹)"
-              type="number"
-              step="0.01"
-              min="0"
               placeholder="0.00"
               value={form.openingBalance}
-              onChange={e => set('openingBalance', parseFloat(e.target.value) || 0)}
+              onChange={(val: number) => set('openingBalance', val)}
             />
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-slate-700">Balance Type</label>

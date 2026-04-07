@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Users, Activity, ArrowUpRight, TrendingUp, Plus, ArrowLeftRight, BookOpen, Zap } from 'lucide-react';
 import api from '../lib/axios';
-import { formatCurrency, formatCurrencyShort } from '../lib/formatCurrency';
+import { formatScaledCurrency } from '../utils/numberScale';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -12,10 +12,10 @@ export function Dashboard() {
     queryKey: ['dashboard_stats'],
     queryFn: async () => {
       try {
-        const res = await api.get('/dashboard/stats');
+        const res = await api.get('/dashboard');
         return res.data.data;
       } catch {
-        return { activeParties: 0, todayTxnCount: 0, todayVolume: 0, todayVatav: 0 };
+        return { totalParties: 0, todayTransactions: 0, totalAmount: 0, totalVatav: 0 };
       }
     },
     // Refetch every 30 seconds automatically
@@ -26,28 +26,28 @@ export function Dashboard() {
   const statCards = [
     {
       name: 'Active Parties',
-      value: stats?.activeParties ?? 0,
+      value: stats?.totalParties ?? 0,
       icon: Users,
       gradient: 'stat-indigo',
       change: 'Registered hawala parties',
     },
     {
       name: "Today's Transactions",
-      value: stats?.todayTxnCount ?? 0,
+      value: stats?.todayTransactions ?? 0,
       icon: Activity,
       gradient: 'stat-emerald',
       change: 'Entries recorded today',
     },
     {
       name: 'Volume Today',
-      value: formatCurrencyShort(stats?.todayVolume ?? 0),
+      value: formatScaledCurrency(stats?.totalAmount ?? 0),
       icon: ArrowUpRight,
       gradient: 'stat-amber',
       change: 'Total money transferred',
     },
     {
       name: 'Vatav Earned',
-      value: formatCurrency(stats?.todayVatav ?? 0),
+      value: formatScaledCurrency(stats?.totalVatav ?? 0),
       icon: TrendingUp,
       gradient: 'stat-rose',
       change: "Commission income today",

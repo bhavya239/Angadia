@@ -82,6 +82,12 @@ public class PartyController {
         return ResponseEntity.ok(ApiResponse.success(transactionService.getLedger(id, from, to)));
     }
 
+    @Operation(summary = "Check if party code exists")
+    @GetMapping("/code/{code}")
+    public ResponseEntity<ApiResponse<Boolean>> checkCodeExists(@PathVariable String code) {
+        return ResponseEntity.ok(ApiResponse.success(partyService.checkCodeExists(code)));
+    }
+
     private String getIp(HttpServletRequest req) {
         String fwd = req.getHeader("X-Forwarded-For");
         return (fwd != null && !fwd.isBlank()) ? fwd.split(",")[0].trim() : req.getRemoteAddr();

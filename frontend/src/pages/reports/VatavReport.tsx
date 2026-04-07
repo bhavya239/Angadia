@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import api from '../../lib/axios';
+import { formatScaledCurrency } from '../../utils/numberScale';
 import { Percent, TrendingUp, ArrowLeftRight, IndianRupee } from 'lucide-react';
 
 export function VatavReport() {
@@ -69,7 +70,7 @@ export function VatavReport() {
               </div>
               <p className="text-slate-500 text-sm font-semibold">Total Volume Moved</p>
               <p className="text-3xl font-extrabold text-emerald-600 mt-2">
-                ₹{report.totalVolume?.toLocaleString('en-IN')}
+                {formatScaledCurrency(report.totalVolume)}
               </p>
               <p className="text-xs text-slate-400 mt-1">Gross transfer amount</p>
             </div>
@@ -82,7 +83,7 @@ export function VatavReport() {
                 </div>
                 <p className="text-amber-100 text-sm font-semibold">Total Vatav Earned</p>
                 <p className="text-4xl font-extrabold text-white mt-2">
-                  ₹{report.totalVatavEarned?.toLocaleString('en-IN')}
+                  {formatScaledCurrency(report.totalVatavEarned)}
                 </p>
                 <p className="text-amber-200 text-xs mt-1">Net commission income</p>
               </div>

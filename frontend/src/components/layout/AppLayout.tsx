@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import {
   LayoutDashboard, Users, LogOut, Menu, UserCircle,
   ArrowLeftRight, BookOpen, Scale, Percent, Calculator, X,
-  ChevronRight, Bell
+  ChevronRight, Bell, FileSpreadsheet
 } from 'lucide-react';
 
 const navGroups = [
@@ -14,11 +14,13 @@ const navGroups = [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard, desc: 'Overview & stats' },
       { name: 'Parties', href: '/parties', icon: UserCircle, desc: 'Manage hawala parties' },
       { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight, desc: 'Entry & daybook' },
+      { name: 'Bulk Import', href: '/transactions/bulk-import', icon: FileSpreadsheet, desc: 'Excel bulk entry' },
     ]
   },
   {
     label: 'Reports',
     items: [
+      { name: 'Daily Register', href: '/reports/daily-register', icon: BookOpen, desc: 'Daybook statement' },
       { name: 'Ledger', href: '/reports', icon: BookOpen, desc: 'Party statement' },
       { name: 'Trial Balance', href: '/reports/trial-balance', icon: Scale, desc: 'Book balance check' },
       { name: 'Vatav Summary', href: '/reports/vatav', icon: Percent, desc: 'Commission earnings' },
@@ -94,7 +96,8 @@ export function AppLayout() {
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const isActive = location.pathname === item.href ||
+                    (item.href !== '/' && location.pathname.startsWith(item.href + '/'));
                   const Icon = item.icon;
                   return (
                     <Link

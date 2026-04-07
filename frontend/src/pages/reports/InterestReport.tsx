@@ -5,6 +5,7 @@ import { Table } from '../../components/ui/Table';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import api from '../../lib/axios';
+import { formatScaledCurrency } from '../../utils/numberScale';
 import { Calculator, TrendingUp, TrendingDown } from 'lucide-react';
 
 export function InterestReport() {
@@ -39,20 +40,20 @@ export function InterestReport() {
     {
       header: 'Earned (Payable)',
       accessor: (p: any) => p.interestEarned > 0
-        ? <span className="text-red-600 font-semibold">₹{p.interestEarned.toLocaleString('en-IN')}</span>
+        ? <span className="text-red-600 font-semibold">{formatScaledCurrency(p.interestEarned)}</span>
         : <span className="text-slate-300">—</span>
     },
     {
       header: 'Charged (Recv\'able)',
       accessor: (p: any) => p.interestCharged > 0
-        ? <span className="text-emerald-600 font-semibold">₹{p.interestCharged.toLocaleString('en-IN')}</span>
+        ? <span className="text-emerald-600 font-semibold">{formatScaledCurrency(p.interestCharged)}</span>
         : <span className="text-slate-300">—</span>
     },
     {
       header: 'Net Interest',
       accessor: (p: any) => (
         <span className={`font-bold ${p.netInterest > 0 ? 'text-red-600' : p.netInterest < 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
-          {p.netInterest !== 0 ? `₹${Math.abs(p.netInterest).toLocaleString('en-IN')} ${p.netInterest > 0 ? 'Pay' : 'Recv'}` : '—'}
+          {p.netInterest !== 0 ? `${formatScaledCurrency(Math.abs(p.netInterest))} ${p.netInterest > 0 ? 'Pay' : 'Recv'}` : '—'}
         </span>
       )
     },
@@ -90,7 +91,7 @@ export function InterestReport() {
             <div className="section-card p-6 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-red-500 uppercase tracking-wide">Total Interest Payable</p>
-                <p className="text-3xl font-extrabold text-red-600 mt-2">₹{report.totalInterestPayable?.toLocaleString('en-IN')}</p>
+                <p className="text-3xl font-extrabold text-red-600 mt-2">{formatScaledCurrency(report.totalInterestPayable)}</p>
                 <p className="text-xs text-slate-400 mt-1">Amount you owe to parties</p>
               </div>
               <div className="p-4 bg-red-50 rounded-2xl">
@@ -101,7 +102,7 @@ export function InterestReport() {
             <div className="section-card p-6 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Total Interest Receivable</p>
-                <p className="text-3xl font-extrabold text-emerald-600 mt-2">₹{report.totalInterestReceivable?.toLocaleString('en-IN')}</p>
+                <p className="text-3xl font-extrabold text-emerald-600 mt-2">{formatScaledCurrency(report.totalInterestReceivable)}</p>
                 <p className="text-xs text-slate-400 mt-1">Amount parties owe to you</p>
               </div>
               <div className="p-4 bg-emerald-50 rounded-2xl">

@@ -7,6 +7,10 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
 public record CreatePartyRequest(
+    @NotBlank(message = "Party code is required")
+    @Pattern(regexp = "^[A-Z0-9]{1,10}$", message = "Invalid format: only uppercase A-Z and 0-9 allowed, max 10 chars")
+    String partyCode,
+
     @NotBlank(message = "Party name is required")
     @Size(min = 2, max = 100)
     String name,

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '../components/ui/Input';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import { Button } from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate, Link } from 'react-router-dom';
@@ -71,9 +72,8 @@ export function Signup() {
               {...register('username')}
               error={errors.username?.message}
             />
-            <Input
+            <PasswordInput
               label="Password"
-              type="password"
               autoComplete="new-password"
               {...register('password')}
               error={errors.password?.message}

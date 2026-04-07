@@ -3,6 +3,8 @@ package com.angadia.backend.controller;
 import com.angadia.backend.domain.entity.City;
 import com.angadia.backend.domain.entity.User;
 import com.angadia.backend.dto.response.ApiResponse;
+import com.angadia.backend.dto.response.ApiResponse;
+import com.angadia.backend.dto.response.CityDropdownItem;
 import com.angadia.backend.service.CityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -43,5 +45,15 @@ public class CityController {
     ) {
         City city = cityService.updateCity(id, body.get("name"), body.get("state"), user.getId(), user.getUsername());
         return ResponseEntity.ok(ApiResponse.success(city, "City updated"));
+    }
+
+    @PostMapping("/auto-create")
+    public ResponseEntity<ApiResponse<CityDropdownItem>> autoCreate(
+        @RequestBody Map<String, String> body,
+        @AuthenticationPrincipal User user
+    ) {
+        City city = cityService.createIfNotExists(body.get("name"), user.getId(), user.getUsername());
+        CityDropdownItem item = new CityDropdownItem(city.getId(), city.getName(), city.getCode(), city.getState());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(item, "City fetched or created"));
     }
 }

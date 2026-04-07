@@ -6,14 +6,15 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { WhatsAppButton } from '../../components/ui/WhatsAppButton';
 import api from '../../lib/axios';
-import { formatCurrency } from '../../lib/formatCurrency';
-import { BookOpen, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { formatScaledCurrency, scaleAmount } from '../../utils/numberScale';
+import { BookOpen, ArrowUpRight, ArrowDownRight, Download } from 'lucide-react';
 
 export function Ledger() {
   const [partyId, setPartyId] = useState('');
   const [from, setFrom] = useState('2024-04-01');
   const [to, setTo] = useState(new Date().toISOString().split('T')[0]);
   const [submittedArgs, setSubmittedArgs] = useState<{ id: string; from: string; to: string } | null>(null);
+  const [exportScaled, setExportScaled] = useState(false);
 
   const { data: parties } = useQuery({
     queryKey: ['parties_select'],
@@ -36,6 +37,37 @@ export function Ledger() {
     if (partyId && from && to) setSubmittedArgs({ id: partyId, from, to });
   };
 
+  const handleExport = () => {
+    if (!ledger || !ledger.entries) return;
+    
+    const headers = ['Date', 'Particulars', 'Debit (Dr)', 'Credit (Cr)', 'Running Balance', 'Balance Type'];
+    
+    const rows = ledger.entries.map((e: any) => {
+        const formatExportVal = (amount: number) => {
+            if (!amount) return '';
+            return exportScaled ? scaleAmount(amount).toFixed(2) : amount.toString();
+        };
+
+        const dr = formatExportVal(e.drAmount);
+        const cr = formatExportVal(e.crAmount);
+        const bal = formatExportVal(e.runningBalance);
+
+        return [e.date, `"${e.particulars}"`, dr, cr, bal, e.balanceType];
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," + 
+        [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
+        
+    const encoded = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encoded);
+    link.setAttribute('download', `ledger_${ledger.partyName.replace(/\\s+/g,'_')}_${ledger.fromDate}_to_${ledger.toDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
   const selectedParty = parties?.find((p: any) => p.id === partyId);
 
   const cols = [
@@ -44,20 +76,20 @@ export function Ledger() {
     {
       header: 'Debit (Dr)',
       accessor: (e: any) => e.drAmount > 0
-        ? <span className="font-semibold text-red-600">{formatCurrency(e.drAmount)}</span>
+        ? <span className="font-semibold text-red-600">{formatScaledCurrency(e.drAmount)}</span>
         : <span className="text-slate-300">—</span>
     },
     {
       header: 'Credit (Cr)',
       accessor: (e: any) => e.crAmount > 0
-        ? <span className="font-semibold text-emerald-600">{formatCurrency(e.crAmount)}</span>
+        ? <span className="font-semibold text-emerald-600">{formatScaledCurrency(e.crAmount)}</span>
         : <span className="text-slate-300">—</span>
     },
     {
       header: 'Running Balance',
       accessor: (e: any) => (
         <span className={`font-bold ${e.balanceType === 'CR' ? 'text-emerald-700' : 'text-red-700'}`}>
-          {formatCurrency(e.runningBalance)} {e.balanceType}
+          {formatScaledCurrency(e.runningBalance)} {e.balanceType}
         </span>
       )
     },
@@ -118,7 +150,7 @@ export function Ledger() {
                   &nbsp;·&nbsp; {ledger.fromDate} to {ledger.toDate}
                 </p>
                 {selectedParty?.phone && (
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center gap-3">
                     <WhatsAppButton
                       phone={selectedParty.phone}
                       partyName={ledger.partyName}
@@ -128,19 +160,30 @@ export function Ledger() {
                     />
                   </div>
                 )}
+                <div className="mt-3 flex items-center gap-3">
+                  <Button variant="secondary" onClick={handleExport} className="flex items-center gap-2 h-9 px-3 text-xs w-auto">
+                      <Download className="w-4 h-4" />
+                      Export CSV
+                  </Button>
+
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer bg-slate-100 px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-200 transition-colors">
+                      <input type="checkbox" checked={exportScaled} onChange={e => setExportScaled(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" />
+                      Export Scaled Values
+                  </label>
+                </div>
               </div>
 
               <div className="flex items-center gap-6">
                 <div className="text-right">
                   <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Opening Balance</p>
                   <p className={`text-lg font-bold mt-1 ${ledger.openingBalanceType === 'CR' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {formatCurrency(ledger.openingBalance)} {ledger.openingBalanceType}
+                    {formatScaledCurrency(ledger.openingBalance)} {ledger.openingBalanceType}
                   </p>
                 </div>
                 <div className={`text-right pl-6 border-l border-slate-200`}>
                   <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Closing Balance</p>
                   <p className={`text-2xl font-extrabold mt-1 ${ledger.closingBalanceType === 'CR' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {formatCurrency(ledger.closingBalance)} {ledger.closingBalanceType}
+                    {formatScaledCurrency(ledger.closingBalance)} {ledger.closingBalanceType}
                   </p>
                 </div>
               </div>
@@ -160,11 +203,11 @@ export function Ledger() {
           <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-10">
             <div className="flex items-center gap-2 text-red-600 font-bold">
               <ArrowUpRight className="w-5 h-5" />
-              Total Dr: {formatCurrency(ledger.totalDr)}
+              Total Dr: {formatScaledCurrency(ledger.totalDr)}
             </div>
             <div className="flex items-center gap-2 text-emerald-600 font-bold">
               <ArrowDownRight className="w-5 h-5" />
-              Total Cr: {formatCurrency(ledger.totalCr)}
+              Total Cr: {formatScaledCurrency(ledger.totalCr)}
             </div>
           </div>
         </div>

@@ -14,6 +14,8 @@ public interface PartyRepository extends MongoRepository<Party, String> {
 
     Optional<Party> findByPartyCode(String partyCode);
 
+    Optional<Party> findByNameIgnoreCase(String name);
+
     boolean existsByPartyCode(String partyCode);
 
     boolean existsByNameIgnoreCaseAndCityId(String name, String cityId);

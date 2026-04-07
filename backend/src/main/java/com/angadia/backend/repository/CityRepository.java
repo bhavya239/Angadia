@@ -12,4 +12,5 @@ public interface CityRepository extends MongoRepository<City, String> {
     List<City> findByIsActiveTrueOrderByNameAsc();
     boolean existsByNameIgnoreCase(String name);
     Optional<City> findByNameIgnoreCase(String name);
+    Optional<City> findByCode(String code);
 }

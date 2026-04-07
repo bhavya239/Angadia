@@ -7,10 +7,12 @@ import { Signup } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
 import { PartyList } from './pages/parties/PartyList';
 import { TransactionEntry } from './pages/transactions/TransactionEntry';
+import { BulkImport } from './pages/transactions/BulkImport';
 import { Ledger } from './pages/reports/Ledger';
 import { TrialBalance } from './pages/reports/TrialBalance';
 import { VatavReport } from './pages/reports/VatavReport';
 import { InterestReport } from './pages/reports/InterestReport';
+import { DailyRegister } from './pages/reports/DailyRegister';
 import { UserManagement } from './pages/admin/UserManagement';
 import { useSessionManager } from './hooks/useSessionManager';
 
@@ -30,10 +32,12 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/parties" element={<PartyList />} />
           <Route path="/transactions" element={<TransactionEntry />} />
+          <Route path="/transactions/bulk-import" element={<BulkImport />} />
           <Route path="/reports" element={<Ledger />} />
           <Route path="/reports/trial-balance" element={<TrialBalance />} />
           <Route path="/reports/vatav" element={<VatavReport />} />
           <Route path="/reports/interest" element={<InterestReport />} />
+          <Route path="/reports/daily-register" element={<DailyRegister />} />
           <Route path="/users" element={<UserManagement />} />
         </Route>
 

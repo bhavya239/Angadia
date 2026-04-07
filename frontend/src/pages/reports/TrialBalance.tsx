@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import api from '../../lib/axios';
+import { formatScaledCurrency } from '../../utils/numberScale';
 import { Scale, AlertTriangle } from 'lucide-react';
 
 export function TrialBalance() {
@@ -39,13 +40,13 @@ export function TrialBalance() {
     {
       header: 'Debit (Dr)',
       accessor: (p: any) => p.totalDr > 0
-        ? <span className="font-semibold text-red-600">₹{p.totalDr.toLocaleString('en-IN')}</span>
+        ? <span className="font-semibold text-red-600">{formatScaledCurrency(p.totalDr)}</span>
         : <span className="text-slate-300">—</span>
     },
     {
       header: 'Credit (Cr)',
       accessor: (p: any) => p.totalCr > 0
-        ? <span className="font-semibold text-emerald-600">₹{p.totalCr.toLocaleString('en-IN')}</span>
+        ? <span className="font-semibold text-emerald-600">{formatScaledCurrency(p.totalCr)}</span>
         : <span className="text-slate-300">—</span>
     },
   ];
@@ -104,12 +105,12 @@ export function TrialBalance() {
           <div className="p-5 border-t border-slate-100 bg-slate-50/50">
             <div className="flex justify-between md:justify-end md:gap-16 font-bold text-base">
               <span className="text-slate-500">Grand Totals</span>
-              <span className="text-red-600">Dr: ₹{tb.grandTotalDr?.toLocaleString('en-IN')}</span>
-              <span className="text-emerald-600">Cr: ₹{tb.grandTotalCr?.toLocaleString('en-IN')}</span>
+              <span className="text-red-600">Dr: {formatScaledCurrency(tb.grandTotalDr)}</span>
+              <span className="text-emerald-600">Cr: {formatScaledCurrency(tb.grandTotalCr)}</span>
             </div>
             {tb.netDifference > 0 && (
               <p className="text-right mt-2 text-red-500 text-xs">
-                ⚠ Ledger out of balance by ₹{tb.netDifference?.toLocaleString('en-IN')}
+                ⚠ Ledger out of balance by {formatScaledCurrency(tb.netDifference)}
               </p>
             )}
           </div>

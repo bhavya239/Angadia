@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Table } from '../../components/ui/Table';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { PasswordInput } from '../../components/ui/PasswordInput';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { toast } from 'react-hot-toast';
@@ -214,9 +215,8 @@ export function UserManagement() {
             onChange={e => setNewUser(x => ({ ...x, fullName: e.target.value }))}
             required
           />
-          <Input
+          <PasswordInput
             label="Temporary Password"
-            type="password"
             placeholder="Min. 8 characters"
             value={newUser.password}
             onChange={e => setNewUser(x => ({ ...x, password: e.target.value }))}

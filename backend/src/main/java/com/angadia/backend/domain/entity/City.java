@@ -24,6 +24,11 @@ public class City {
     @Indexed(unique = true)
     private String name;
 
+    @Indexed(unique = true)
+    private String code;
+
+    private String district;
+
     private String state;
 
     @Builder.Default

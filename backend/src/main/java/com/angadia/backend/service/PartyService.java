@@ -53,7 +53,13 @@ public class PartyService {
              throw new BusinessRuleException("This phone number is already registered to another party.");
         }
 
-        String partyCode = sequenceGenerator.generatePartyCode(city.getName());
+        String normalizedCode = req.partyCode() != null ? req.partyCode().trim().toUpperCase() : "";
+        if (partyRepository.existsByPartyCode(normalizedCode)) {
+             throw new BusinessRuleException("Party code already exists: " + normalizedCode);
+        }
+
+        // We don't use sequenceGenerator anymore, we use the user-provided exact code
+        String partyCode = normalizedCode;
 
         Party party = Party.builder()
             .partyCode(partyCode)
@@ -109,6 +115,11 @@ public class PartyService {
                 return cityRepository.save(newCity);
             });
 
+        // Ensure party code immutability (if sent, it must match)
+        if (req.partyCode() != null && !req.partyCode().trim().toUpperCase().equals(existing.getPartyCode())) {
+            throw new BusinessRuleException("Party code is immutable and cannot be changed after creation.");
+        }
+
         existing.setName(req.name().trim());
         existing.setCityId(city.getId());
         existing.setCityName(city.getName());
@@ -146,6 +157,11 @@ public class PartyService {
 
     public long getActivePartyCount() {
         return partyRepository.countByIsActiveTrue();
+    }
+
+    public boolean checkCodeExists(String code) {
+        if (code == null || code.trim().isEmpty()) return false;
+        return partyRepository.existsByPartyCode(code.trim().toUpperCase());
     }
 
     private Party findById(String id) {

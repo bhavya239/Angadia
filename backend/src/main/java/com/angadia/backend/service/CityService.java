@@ -20,12 +20,35 @@ public class CityService {
     private final ObjectMapper objectMapper;
 
     public City createCity(String name, String state, String userId, String username) {
-        if (cityRepository.existsByNameIgnoreCase(name.trim()))
+        String code = name.trim().toUpperCase().replaceAll("\\s+", "_");
+        if (cityRepository.existsByNameIgnoreCase(name.trim()) || cityRepository.findByCode(code).isPresent())
             throw new BusinessRuleException("City already exists: " + name);
-        City city = City.builder().name(name.trim()).state(state != null ? state.trim() : "Gujarat").build();
+        City city = City.builder()
+            .name(name.trim())
+            .code(code)
+            .district("Unknown")
+            .state(state != null ? state.trim() : "Gujarat")
+            .build();
         City saved = cityRepository.save(city);
         auditLogService.logAsync(userId, username, AuditAction.CITY_CREATED, "City", saved.getId(), null, name, null, null);
         return saved;
+    }
+
+    public City createIfNotExists(String name, String userId, String username) {
+        String code = name.trim().toUpperCase().replaceAll("\\s+", "_");
+        return cityRepository.findByCode(code).orElseGet(() -> {
+            City city = City.builder()
+                .name(name.trim())
+                .code(code)
+                .district("Unknown")
+                .state("Unknown")
+                .build();
+            City saved = cityRepository.save(city);
+            if (userId != null) {
+                auditLogService.logAsync(userId, username, AuditAction.CITY_CREATED, "City", saved.getId(), null, name, null, null);
+            }
+            return saved;
+        });
     }
 
     public List<City> getAllActiveCities() {

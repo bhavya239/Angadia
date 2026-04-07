@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,7 +10,8 @@ import { Table } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
-import { formatCurrency } from '../../lib/formatCurrency';
+import { formatScaledCurrency } from '../../utils/numberScale';
+import { ScaledAmountInput } from '../../components/common/ScaledAmountInput';
 import { ArrowLeftRight, Zap, CalendarDays, TrendingUp, IndianRupee } from 'lucide-react';
 
 const txnSchema = z.object({
@@ -29,7 +30,7 @@ export function TransactionEntry() {
   const formRef = useRef<HTMLFormElement>(null);
   const [vatavPreview, setVatavPreview] = useState(0);
 
-  const { register, handleSubmit, watch, reset, setFocus, formState: { errors } } = useForm<any>({
+  const { register, handleSubmit, watch, reset, setFocus, control, formState: { errors } } = useForm<any>({
     resolver: zodResolver(txnSchema),
     defaultValues: {
       txnDate: new Date().toISOString().split('T')[0],
@@ -115,8 +116,8 @@ export function TransactionEntry() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Today's Entries", value: activeTxns.length, icon: CalendarDays, color: 'text-indigo-600 bg-indigo-50' },
-          { label: 'Volume Moved', value: formatCurrency(todayVolume), icon: IndianRupee, color: 'text-emerald-600 bg-emerald-50' },
-          { label: 'Vatav Earned', value: formatCurrency(todayVatav), icon: TrendingUp, color: 'text-amber-600 bg-amber-50' },
+          { label: 'Volume Moved', value: formatScaledCurrency(todayVolume), icon: IndianRupee, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Vatav Earned', value: formatScaledCurrency(todayVatav), icon: TrendingUp, color: 'text-amber-600 bg-amber-50' },
         ].map(s => {
           const Icon = s.icon;
           return (
@@ -184,15 +185,20 @@ export function TransactionEntry() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Amount (₹)"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  {...register('amount')}
-                  error={errors.amount?.message as any}
-                  required
+                <Controller
+                  control={control}
+                  name="amount"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <ScaledAmountInput
+                      label="Amount (₹)"
+                      placeholder="0.00"
+                      value={value}
+                      onChange={onChange}
+                      onBlur={onBlur}
+                      error={errors.amount?.message as any}
+                      required
+                    />
+                  )}
                 />
                 <Input
                   label="Vatav (%)"
@@ -211,7 +217,7 @@ export function TransactionEntry() {
                 <div>
                   <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">Commission Preview</p>
                   <p className="text-2xl font-extrabold text-amber-600 mt-0.5">
-                    ₹ {vatavPreview.toFixed(2)}
+                    ₹ {formatScaledCurrency(vatavPreview, { showSymbol: false })}
                   </p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-amber-300" />
@@ -269,13 +275,13 @@ export function TransactionEntry() {
                 {
                   header: 'Amount ₹',
                   accessor: (t: any) => (
-                    <span className="font-bold text-slate-900">{formatCurrency(t.amount)}</span>
+                    <span className="font-bold text-slate-900">{formatScaledCurrency(t.amount)}</span>
                   )
                 },
                 {
                   header: 'Vatav ₹',
                   accessor: (t: any) => (
-                    <Badge variant="warning">{formatCurrency(t.vatavAmount)}</Badge>
+                    <Badge variant="warning">{formatScaledCurrency(t.vatavAmount)}</Badge>
                   )
                 },
                 {

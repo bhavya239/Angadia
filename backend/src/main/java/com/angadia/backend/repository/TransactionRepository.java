@@ -6,9 +6,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,4 +45,16 @@ public interface TransactionRepository extends MongoRepository<Transaction, Stri
     // Vatav: all active transactions in date range
     @Query("{ 'status': 'ACTIVE', 'txnDate': { $gte: ?0, $lte: ?1 } }")
     List<Transaction> findActiveByDateRange(LocalDate from, LocalDate to);
+
+    // Global counts and sums
+    long countByStatus(TransactionStatus status);
+
+    @Aggregation(pipeline = { "{ $match: { status: 'ACTIVE' } }", "{ $group: { _id: null, total: { $sum: '$amount' } } }" })
+    BigDecimal sumTotalAmount();
+
+    @Aggregation(pipeline = { "{ $match: { status: 'ACTIVE' } }", "{ $group: { _id: null, total: { $sum: '$vatavAmount' } } }" })
+    BigDecimal sumTotalVatav();
+
+    @Aggregation(pipeline = { "{ $match: { status: 'ACTIVE', txnDate: { $lt: ?0 } } }", "{ $group: { _id: null, total: { $sum: '$vatavAmount' } } }" })
+    BigDecimal sumGlobalOpeningBalance(LocalDate date);
 }
