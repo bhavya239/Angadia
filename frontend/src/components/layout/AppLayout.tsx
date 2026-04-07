@@ -43,17 +43,21 @@ export function AppLayout() {
   // Get current page name for breadcrumb
   const allItems = navGroups.flatMap(g => g.items);
   
-  // Determine the single active sidebar item based on the longest matching href
-  let activeHref = '';
-  const sortedItems = [...allItems].sort((a, b) => b.href.length - a.href.length);
-  for (const item of sortedItems) {
-    if (location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href + '/'))) {
-      activeHref = item.href;
-      break;
-    }
-  }
+  const isActive = (path: string) => {
+    if (location.pathname === path) return true;
+    
+    // Explicitly handle nested routes that belong to a parent navigation item
+    if (path === '/transactions' && location.pathname.startsWith('/transactions/create')) return true;
+    if (path === '/parties' && location.pathname.startsWith('/parties/')) return true;
+    if (path === '/users' && location.pathname.startsWith('/users/')) return true;
+    
+    return false;
+  };
 
-  const currentPage = allItems.find(i => i.href === activeHref);
+  let currentPage = allItems.find(i => location.pathname === i.href);
+  if (!currentPage) {
+    currentPage = allItems.find(i => isActive(i.href));
+  }
 
   const initials = (user?.fullName || 'U')
     .split(' ')
@@ -107,7 +111,7 @@ export function AppLayout() {
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isActive = item.href === activeHref;
+                  const active = isActive(item.href);
                   const Icon = item.icon;
                   return (
                     <Link
@@ -117,17 +121,17 @@ export function AppLayout() {
                       className={`
                         flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm
                         transition-all duration-200 group relative
-                        ${isActive
+                        ${active
                           ? 'bg-white/10 text-white'
                           : 'text-white/60 hover:text-white hover:bg-white/5'}
                       `}
                     >
-                      {isActive && (
+                      {active && (
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-400 rounded-r-full" />
                       )}
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-400' : 'text-white/40 group-hover:text-white/70'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-indigo-400' : 'text-white/40 group-hover:text-white/70'}`} />
                       <span className="flex-1">{item.name}</span>
-                      {isActive && <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />}
+                      {active && <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />}
                     </Link>
                   );
                 })}
