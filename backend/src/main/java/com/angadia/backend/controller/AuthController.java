@@ -1,11 +1,11 @@
 package com.angadia.backend.controller;
 
-import com.angadia.backend.domain.entity.User;
 import com.angadia.backend.dto.request.LoginRequest;
 import com.angadia.backend.dto.request.RefreshTokenRequest;
 import com.angadia.backend.dto.request.SignupRequest;
 import com.angadia.backend.dto.response.ApiResponse;
 import com.angadia.backend.dto.response.AuthResponse;
+import com.angadia.backend.security.CustomUserDetails;
 import com.angadia.backend.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -57,21 +57,21 @@ public class AuthController {
     @Operation(summary = "Logout and revoke all refresh tokens")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-        @AuthenticationPrincipal User user,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         HttpServletRequest httpRequest
     ) {
-        authService.logout(user.getId(), getIp(httpRequest), getAgent(httpRequest));
+        authService.logout(userDetails.getId(), getIp(httpRequest), getAgent(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
     }
 
     @Operation(summary = "Change the authenticated user's password")
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
-        @AuthenticationPrincipal User user,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody com.angadia.backend.dto.request.ChangePasswordRequest request,
         HttpServletRequest httpRequest
     ) {
-        authService.changePassword(user.getId(), user.getUsername(), request.currentPassword(), request.newPassword(), getIp(httpRequest), getAgent(httpRequest));
+        authService.changePassword(userDetails.getId(), userDetails.getUsername(), request.currentPassword(), request.newPassword(), getIp(httpRequest), getAgent(httpRequest));
         return ResponseEntity.ok(ApiResponse.success(null, "Password changed successfully. Please log in again."));
     }
 

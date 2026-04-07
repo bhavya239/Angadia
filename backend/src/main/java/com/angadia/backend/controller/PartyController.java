@@ -1,10 +1,10 @@
 package com.angadia.backend.controller;
 
-import com.angadia.backend.domain.entity.User;
 import com.angadia.backend.dto.request.CreatePartyRequest;
 import com.angadia.backend.dto.response.ApiResponse;
 import com.angadia.backend.dto.response.LedgerResponse;
 import com.angadia.backend.dto.response.PartyResponse;
+import com.angadia.backend.security.CustomUserDetails;
 import com.angadia.backend.service.PartyService;
 import com.angadia.backend.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,10 +34,10 @@ public class PartyController {
     @PostMapping
     public ResponseEntity<ApiResponse<PartyResponse>> create(
         @Valid @RequestBody CreatePartyRequest request,
-        @AuthenticationPrincipal User user,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         HttpServletRequest http
     ) {
-        PartyResponse response = partyService.createParty(request, user.getId(), user.getUsername(),
+        PartyResponse response = partyService.createParty(request, userDetails.getId(), userDetails.getUsername(),
             getIp(http), getAgent(http));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Party created"));
     }
@@ -62,10 +62,10 @@ public class PartyController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(
         @PathVariable String id,
-        @AuthenticationPrincipal User user,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         HttpServletRequest http
     ) {
-        partyService.deleteParty(id, user.getId(), user.getUsername(), getIp(http), getAgent(http));
+        partyService.deleteParty(id, userDetails.getId(), userDetails.getUsername(), getIp(http), getAgent(http));
         return ResponseEntity.ok(ApiResponse.success(null, "Party deleted successfully"));
     }
 
@@ -74,11 +74,11 @@ public class PartyController {
     public ResponseEntity<ApiResponse<PartyResponse>> update(
         @PathVariable String id,
         @Valid @RequestBody CreatePartyRequest request,
-        @AuthenticationPrincipal User user,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         HttpServletRequest http
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-            partyService.updateParty(id, request, user.getId(), user.getUsername(), getIp(http), getAgent(http)),
+            partyService.updateParty(id, request, userDetails.getId(), userDetails.getUsername(), getIp(http), getAgent(http)),
             "Party updated"
         ));
     }

@@ -1,9 +1,9 @@
 package com.angadia.backend.controller;
 
-import com.angadia.backend.domain.entity.User;
 import com.angadia.backend.dto.request.CreateTransactionRequest;
 import com.angadia.backend.dto.response.ApiResponse;
 import com.angadia.backend.dto.response.TransactionResponse;
+import com.angadia.backend.security.CustomUserDetails;
 import com.angadia.backend.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,11 +32,11 @@ public class TransactionController {
     @PostMapping
     public ResponseEntity<ApiResponse<TransactionResponse>> create(
         @Valid @RequestBody CreateTransactionRequest request,
-        @AuthenticationPrincipal User user,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         HttpServletRequest http
     ) {
         TransactionResponse response = transactionService.createTransaction(
-            request, user.getId(), user.getUsername(), getIp(http), getAgent(http));
+            request, userDetails.getId(), userDetails.getUsername(), getIp(http), getAgent(http));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Transaction created"));
     }
 
@@ -65,11 +65,11 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<Void>> delete(
         @PathVariable String id,
         @RequestBody Map<String, String> body,
-        @AuthenticationPrincipal User user,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         HttpServletRequest http
     ) {
         transactionService.deleteTransaction(id, body.get("deleteReason"),
-            user.getId(), user.getUsername(), getIp(http), getAgent(http));
+            userDetails.getId(), userDetails.getUsername(), getIp(http), getAgent(http));
         return ResponseEntity.ok(ApiResponse.success(null, "Transaction deleted"));
     }
 

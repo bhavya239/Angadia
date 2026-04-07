@@ -1,10 +1,10 @@
 package com.angadia.backend.controller;
 
-import com.angadia.backend.domain.entity.User;
 import com.angadia.backend.dto.request.BulkImportRowRequest;
 import com.angadia.backend.dto.response.ApiResponse;
 import com.angadia.backend.dto.response.BulkImportResponse;
 import com.angadia.backend.dto.response.ParsedRowResponse;
+import com.angadia.backend.security.CustomUserDetails;
 import com.angadia.backend.service.BulkImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,7 +58,7 @@ public class BulkImportController {
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponse<BulkImportResponse>> confirm(
         @RequestBody List<BulkImportRowRequest> rows,
-        @AuthenticationPrincipal User user,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         HttpServletRequest http
     ) {
         if (rows == null || rows.isEmpty()) {
@@ -66,7 +66,7 @@ public class BulkImportController {
                 .body(ApiResponse.error("No rows provided to import"));
         }
         BulkImportResponse result = bulkImportService.commitImport(
-            rows, user.getId(), user.getUsername(), getIp(http), getAgent(http));
+            rows, userDetails.getId(), userDetails.getUsername(), getIp(http), getAgent(http));
         return ResponseEntity.ok(ApiResponse.success(result,
             result.successCount() + " transactions imported successfully"));
     }
