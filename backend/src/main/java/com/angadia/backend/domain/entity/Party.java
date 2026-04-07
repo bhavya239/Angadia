@@ -31,7 +31,7 @@ public class Party {
     @Id
     private String id;
 
-    @Indexed(unique = true)
+    @Indexed(unique = true, sparse = true)
     private String partyCode;  // e.g. AHM-0001
 
     private String name;

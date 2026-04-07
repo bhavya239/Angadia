@@ -21,10 +21,10 @@ public class City {
     @Id
     private String id;
 
-    @Indexed(unique = true)
+    @Indexed(unique = true, sparse = true)
     private String name;
 
-    @Indexed(unique = true)
+    @Indexed(unique = true, sparse = true)
     private String code;
 
     private String district;
