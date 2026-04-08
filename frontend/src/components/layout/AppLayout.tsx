@@ -44,12 +44,20 @@ export function AppLayout() {
   const allItems = navGroups.flatMap(g => g.items);
   
   const isActive = (path: string) => {
+    // Exact match
     if (location.pathname === path) return true;
     
-    // Explicitly handle nested routes that belong to a parent navigation item
-    if (path === '/transactions' && location.pathname.startsWith('/transactions/create')) return true;
-    if (path === '/parties' && location.pathname.startsWith('/parties/')) return true;
-    if (path === '/users' && location.pathname.startsWith('/users/')) return true;
+    // Don't prefix match the root path
+    if (path === '/') return false;
+    
+    // If the URL is a child of this menu item's path
+    if (location.pathname.startsWith(path + '/')) {
+      // Make sure there isn't another explicitly defined menu item that is a better/deeper match
+      const hasDeeperMatch = allItems.some(
+        item => item.href !== path && item.href !== '/' && location.pathname.startsWith(item.href)
+      );
+      return !hasDeeperMatch;
+    }
     
     return false;
   };
