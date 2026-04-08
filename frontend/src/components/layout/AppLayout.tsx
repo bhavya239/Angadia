@@ -12,8 +12,8 @@ const navGroups = [
     label: 'Core',
     items: [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard, desc: 'Overview & stats' },
-      { name: 'Parties', href: '/parties', icon: UserCircle, desc: 'Manage hawala parties' },
-      { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight, desc: 'Entry & daybook' },
+      { name: 'Parties', href: '/parties', icon: UserCircle, desc: 'Manage hawala parties', children: ['/parties', '/parties/create'] },
+      { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight, desc: 'Entry & daybook', children: ['/transactions', '/transactions/create'] },
       { name: 'Bulk Import', href: '/transactions/bulk-import', icon: FileSpreadsheet, desc: 'Excel bulk entry' },
     ]
   },
@@ -30,7 +30,7 @@ const navGroups = [
   {
     label: 'Admin',
     items: [
-      { name: 'User Management', href: '/users', icon: Users, desc: 'Access & security' },
+      { name: 'User Management', href: '/users', icon: Users, desc: 'Access & security', children: ['/users', '/users/create'] },
     ]
   }
 ];
@@ -43,29 +43,19 @@ export function AppLayout() {
   // Get current page name for breadcrumb
   const allItems = navGroups.flatMap(g => g.items);
   
-  const isActive = (path: string) => {
-    // Exact match
-    if (location.pathname === path) return true;
+  const isActive = (item: any) => {
+    // Exact match for main routes
+    if (item.href === location.pathname) return true;
     
-    // Don't prefix match the root path
-    if (path === '/') return false;
-    
-    // If the URL is a child of this menu item's path
-    if (location.pathname.startsWith(path + '/')) {
-      // Make sure there isn't another explicitly defined menu item that is a better/deeper match
-      const hasDeeperMatch = allItems.some(
-        item => item.href !== path && item.href !== '/' && location.pathname.startsWith(item.href)
-      );
-      return !hasDeeperMatch;
+    // If item has children → match those
+    if (item.children && item.children.includes(location.pathname)) {
+      return true;
     }
     
     return false;
   };
 
-  let currentPage = allItems.find(i => location.pathname === i.href);
-  if (!currentPage) {
-    currentPage = allItems.find(i => isActive(i.href));
-  }
+  const currentPage = allItems.find(i => isActive(i));
 
   const initials = (user?.fullName || 'U')
     .split(' ')
@@ -119,7 +109,7 @@ export function AppLayout() {
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
-                  const active = isActive(item.href);
+                  const active = isActive(item);
                   const Icon = item.icon;
                   return (
                     <Link

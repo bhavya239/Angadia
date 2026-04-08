@@ -21,14 +21,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    // Handle 401 Unauthorized, refresh token logic goes here
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      // const newToken = await refreshAuthToken();...
-      // useAuthStore.getState().setAccessToken(newToken);
-      // return api(originalRequest);
+    // Handle 401 Unauthorized securely
+    if (error.response?.status === 401) {
       useAuthStore.getState().logout();
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
