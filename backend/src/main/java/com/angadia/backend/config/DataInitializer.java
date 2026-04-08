@@ -19,8 +19,8 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (userRepository.count() == 0) {
-            log.info("No users found in database. Seeding default SUPER_ADMIN...");
+        if (userRepository.findByUsername("admin").isEmpty()) {
+            log.info("Admin user not found. Seeding default SUPER_ADMIN...");
             
             User admin = User.builder()
                 .username("admin")
@@ -34,7 +34,7 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
             log.info("Default SUPER_ADMIN created. Username: admin, Password: admin123");
         } else {
-            log.info("Users already present in database. Skipping seeding.");
+            log.info("Admin user already present in database. Skipping seeding.");
         }
     }
 }
