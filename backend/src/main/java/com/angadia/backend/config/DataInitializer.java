@@ -19,22 +19,26 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (userRepository.findByUsername("admin").isEmpty()) {
-            log.info("Admin user not found. Seeding default SUPER_ADMIN...");
-            
-            User admin = User.builder()
-                .username("admin")
-                .passwordHash(passwordEncoder.encode("admin123"))
-                .role(Role.SUPER_ADMIN)
-                .fullName("System Administrator")
-                .isActive(true)
-                .forcePasswordReset(true)
-                .build();
+        try {
+            if (userRepository.findByUsername("admin").isEmpty()) {
+                log.info("Admin user not found. Seeding default SUPER_ADMIN...");
                 
-            userRepository.save(admin);
-            log.info("Default SUPER_ADMIN created. Username: admin, Password: admin123");
-        } else {
-            log.info("Admin user already present in database. Skipping seeding.");
+                User admin = User.builder()
+                    .username("admin")
+                    .passwordHash(passwordEncoder.encode("admin123"))
+                    .role(Role.SUPER_ADMIN)
+                    .fullName("System Administrator")
+                    .isActive(true)
+                    .forcePasswordReset(true)
+                    .build();
+                    
+                userRepository.save(admin);
+                log.info("Default SUPER_ADMIN created. Username: admin, Password: admin123");
+            } else {
+                log.info("Admin user already present in database. Skipping seeding.");
+            }
+        } catch (Exception e) {
+            log.error("CRITICAL: Failed to seed admin user. The app will continue to start, but DB access may be broken. Error: {}", e.getMessage());
         }
     }
 }
