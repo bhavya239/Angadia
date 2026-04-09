@@ -37,7 +37,7 @@ app:
   cors:
     # Local dev + Vercel production + Vercel preview URLs
     # After deploying, add your actual Vercel URL here via ALLOWED_ORIGINS env var on Render
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+    allowed-origins: ${ALLOWED_ORIGINS:https://frontend-drab-two-54.vercel.app,http://localhost:5173,http://localhost:3000}
   rate-limit:
     login-capacity: 5
     login-refill-minutes: 15
