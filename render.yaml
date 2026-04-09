@@ -21,7 +21,7 @@ services:
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    healthCheckPath: /actuator/health
+    healthCheckPath: /api/health
     envVars:
       # ── MongoDB Atlas ──────────────────────────────────────────────────────
       # IMPORTANT: The $ in the password must be URL-encoded as %24
