@@ -60,13 +60,9 @@ public class PartyController {
 
     @Operation(summary = "Delete party")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(
-        @PathVariable String id,
-        @AuthenticationPrincipal CustomUserDetails userDetails,
-        HttpServletRequest http
-    ) {
-        partyService.deleteParty(id, userDetails.getId(), userDetails.getUsername(), getIp(http), getAgent(http));
-        return ResponseEntity.ok(ApiResponse.success(null, "Party deleted successfully"));
+    public ResponseEntity<?> deleteParty(@PathVariable String id) {
+        partyService.deleteParty(id);
+        return ResponseEntity.ok("Party deleted successfully");
     }
 
     @Operation(summary = "Update party")

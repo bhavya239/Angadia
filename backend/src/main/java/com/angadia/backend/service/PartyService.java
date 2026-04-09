@@ -140,20 +140,26 @@ public class PartyService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public void deleteParty(String id, String userId, String username,
-                            String ipAddress, String userAgent) {
-        Party party = findById(id);
-        
-        boolean hasTransactions = transactionRepository.existsBySenderId(id) || transactionRepository.existsByReceiverId(id);
+    public void deleteParty(String partyId) {
+        log.info("Deleting party with ID: {}", partyId);
+        Party party = partyRepository.findById(partyId)
+            .orElseThrow(() -> new EntityNotFoundException("Party not found"));
+
+        log.info("Party found: {}", party.getPartyCode());
+        log.info("Checking transactions for party");
+        boolean hasTransactions =
+            transactionRepository.existsBySenderId(partyId) ||
+            transactionRepository.existsByReceiverId(partyId);
+
         if (hasTransactions) {
-            throw new BusinessException("This party has transactions and cannot be deleted");
+            throw new BusinessException(
+                "This party has transactions and cannot be deleted"
+            );
         }
 
+        // Soft delete (IMPORTANT)
         party.setActive(false);
         partyRepository.save(party);
-
-        auditLogService.logAsync(userId, username, AuditAction.PARTY_DELETED,
-            "Party", id, toJson(party), null, ipAddress, userAgent);
     }
 
     public long getActivePartyCount() {

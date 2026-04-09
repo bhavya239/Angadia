@@ -42,9 +42,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<?> handleBusinessException(BusinessException ex) {
+    public ResponseEntity<?> handleBusiness(BusinessException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(new ErrorResponse(ex.getMessage()));
+            .body(Map.of(
+                "message", ex.getMessage(),
+                "error", "BUSINESS_ERROR",
+                "status", 400
+            ));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -53,9 +57,15 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
-        log.error("Unhandled exception", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody(500, "INTERNAL_ERROR", "An unexpected error occurred"));
+    public ResponseEntity<?> handleGeneric(Exception ex) {
+        ex.printStackTrace(); // IMPORTANT for debugging
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of(
+                "message", "Internal server error",
+                "error", "INTERNAL_ERROR",
+                "status", 500
+            ));
     }
 
     private Map<String, Object> errorBody(int status, String error, String message) {

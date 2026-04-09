@@ -45,12 +45,11 @@ export function PartyList() {
       setPartyToDelete(null);
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Failed to delete party';
-      if (message.toLowerCase().includes('cannot be deleted')) {
-        toast.error('❌ This party has transactions. Delete transactions first.');
-      } else {
-        toast.error(message);
-      }
+      const msg = 
+        error?.response?.data?.message || 
+        "Failed to delete party";
+
+      toast.error(msg);
       setPartyToDelete(null);
     },
   });
